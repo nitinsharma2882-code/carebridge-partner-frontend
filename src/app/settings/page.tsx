@@ -240,7 +240,7 @@ export default function SettingsPage() {
             <div style={{ margin: '0 14px', background: '#fff', borderRadius: '18px', overflow: 'hidden', border: '1px solid #E2E8F0' }}>
               <Row icon="💬" label="Help & Support"          sublabel="Chat with our team"  onPress={() => info('Help & Support', 'Contact us at:\nsupport@carebridge.in\n\nAvailable Mon–Sat, 9 AM – 6 PM', '💬')} />
               <Row icon="⭐" label="Rate the App"            sublabel="Share your feedback" onPress={() => info('Rate CareBridge', 'Thank you! Rating opens the app store in the live version.', '⭐')} />
-              <Row icon="♿" label="Accessibility"            sublabel="Font size, contrast"  onPress={() => comingSoon('Accessibility')} />
+              <Row icon="♿" label="Accessibility"            sublabel="Font size, contrast"  onPress={() => router.push('/settings/accessibility')} />
               <Row icon="📄" label="Terms & Conditions"                                      onPress={() => router.push('/terms')} />
               <Row icon="🔒" label="Privacy Policy"                                          onPress={() => router.push('/privacy')} />
               <Row icon="📦" label="Open Source Libraries"                                   onPress={() => comingSoon('Open Source Libraries')} />
