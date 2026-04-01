@@ -3,31 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useStore } from '@/lib/store'
 import { AuthAPI } from '@/lib/api'
-import { getDeviceId } from '@/lib/device'
-
-const SESSION_DEVICE_KEY = 'cb_assistant_session_device'
-
-// ── Single device session helpers ─────────────────────────────────────────────
-// After successful login, we store the current device ID as the "active session".
-// On every app load (see store or layout), this is checked.
-// If the stored session device differs from the current device → force logout.
-function registerSession(deviceId: string) {
-  if (typeof window === 'undefined') return
-  localStorage.setItem(SESSION_DEVICE_KEY, deviceId)
-}
-
-export function isSessionValid(): boolean {
-  if (typeof window === 'undefined') return true
-  const sessionDevice = localStorage.getItem(SESSION_DEVICE_KEY)
-  const currentDevice = localStorage.getItem('cb_assistant_device_id')
-  if (!sessionDevice || !currentDevice) return true   // no session yet
-  return sessionDevice === currentDevice              // must match
-}
-
-export function clearSession() {
-  if (typeof window === 'undefined') return
-  localStorage.removeItem(SESSION_DEVICE_KEY)
-}
+import { getDeviceId, registerSession, isSessionValid, clearSession } from '@/lib/device'
 
 // ── Popup ─────────────────────────────────────────────────────────────────────
 function PopupLayer() {
