@@ -146,6 +146,48 @@ export default function HomePage() {
         {/* Scrollable content */}
         <div style={{ flex:1, overflowY:'auto', paddingBottom:'90px' }}>
 
+          {/* SOS Emergency Banner */}
+          <div
+            onClick={() => router.push('/sos')}
+            style={{
+              margin: '12px 14px 0',
+              borderRadius: '16px',
+              background: 'linear-gradient(135deg,#FEF2F2,#FEE2E2)',
+              border: '1.5px solid #FECACA',
+              padding: '14px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              cursor: 'pointer',
+              animation: 'sosPulse 2s infinite',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{
+                width: '42px', height: '42px', borderRadius: '13px',
+                background: '#DC2626',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+                boxShadow: '0 4px 12px rgba(220,38,38,0.35)',
+              }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round">
+                  <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 015.11 12.7 19.79 19.79 0 012.12 4.1 2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/>
+                </svg>
+              </div>
+              <div>
+                <div style={{ fontSize: '14px', fontWeight: 800, color: '#991B1B' }}>
+                  SOS Emergency Available
+                </div>
+                <div style={{ fontSize: '12px', color: '#DC2626', marginTop: '2px', opacity: 0.85 }}>
+                  Tap for instant support · Response in 10 seconds
+                </div>
+              </div>
+            </div>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2.5" strokeLinecap="round">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </div>
+
           {/* Horizontal Ads */}
           <div style={{ padding:'12px 0 0' }}>
             <div style={{ padding:'0 14px 8px' }}>
