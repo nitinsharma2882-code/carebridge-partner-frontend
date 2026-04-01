@@ -110,7 +110,7 @@ export default function NotificationsPage() {
         </div>
       </div>
 
-      <BottomNav active="Alerts" />
+      <BottomNav active="Docs" />
       <PopupLayer />
     </MobileFrame>
   )
