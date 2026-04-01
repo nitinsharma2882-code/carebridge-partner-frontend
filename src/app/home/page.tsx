@@ -115,14 +115,6 @@ export default function HomePage() {
             <div style={{ fontSize:'19px', fontWeight:900, color:'#0F172A', letterSpacing:'-0.4px', marginTop:'2px' }}>Rajan Kumar</div>
           </div>
           <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
-            {/* SOS header pill — navigates to /sos */}
-            <button onClick={() => router.push('/sos')}
-              style={{ display:'flex', alignItems:'center', gap:'5px', padding:'7px 11px', background:'#DC2626', border:'none', borderRadius:'20px', cursor:'pointer', animation:'sosPulse 2s infinite' }}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round">
-                <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.79 19.79 0 012.12 8.7 2 2 0 014.11 6.5h3a2 2 0 012 1.72"/>
-              </svg>
-              <span style={{ fontSize:'12px', fontWeight:800, color:'#fff', letterSpacing:'0.5px' }}>SOS</span>
-            </button>
             {/* Notification bell */}
             <button onClick={() => router.push('/notifications')}
               style={{ width:'38px', height:'38px', borderRadius:'50%', background:'#F1F5F9', border:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', position:'relative' }}>
