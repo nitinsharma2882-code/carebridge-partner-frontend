@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useStore } from '@/lib/store'
 import BottomNav from '@/components/BottomNav'
@@ -37,6 +37,26 @@ function PopupLayer() {
   )
 }
 
+// ── QuickCard ─────────────────────────────────────────────────────────────────
+function QuickCard({ emoji, bg, label, sub, onClick }: {
+  emoji: string; bg: string; label: string; sub: string; onClick: () => void
+}) {
+  return (
+    <div onClick={onClick} style={{
+      flex: 1, background: '#fff', border: '1px solid #E2E8F0',
+      borderRadius: '16px', padding: '14px', cursor: 'pointer',
+      display: 'flex', flexDirection: 'column', gap: '8px',
+    }}>
+      <div style={{
+        width: '36px', height: '36px', borderRadius: '11px', background: bg,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px',
+      }}>{emoji}</div>
+      <div style={{ fontSize:'13px', fontWeight:700, color:'#0F172A' }}>{label}</div>
+      <div style={{ fontSize:'11px', color:'#94A3B8', marginTop:'-4px' }}>{sub}</div>
+    </div>
+  )
+}
+
 // ── Ads & bulletin data ───────────────────────────────────────────────────────
 const ADS = [
   { id:1, label:'Sponsored', title:'Apollo HomeHealth', sub:'Earn up to ₹800/visit',  icon:'🏥', gradient:'linear-gradient(135deg,#0047AB,#0070CC)', cta:'Learn →', ctaColor:'#2563EB', body:'Partner with Apollo to earn up to ₹800/visit.\nJoin 2,000+ partners already earning more.' },
@@ -52,11 +72,47 @@ const BULLETIN_ITEMS = [
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function HomePage() {
-  const [isOnline,   setIsOnline]   = useState(false)
-  const [onlineTime, setOnlineTime] = useState('Go online to earn')
+  const [isOnline,      setIsOnline]      = useState(false)
+  const [onlineTime,    setOnlineTime]    = useState('Go online to earn')
+  const [userName,      setUserName]      = useState('there')
+  const [upcomingCount, setUpcomingCount] = useState(0)
   const fileRef = useRef<HTMLInputElement>(null)
   const router  = useRouter()
   const { showPopup, closePopup } = useStore()
+
+  // ── Fetch real username + booking count ──────────────────
+  useEffect(() => {
+    // Step 1: instant from localStorage
+    try {
+      const saved = localStorage.getItem('carebridge_user')
+      if (saved) {
+        const u = JSON.parse(saved)
+        if (u.name) setUserName(u.name)
+      }
+    } catch {}
+
+    // Step 2: latest from backend
+    fetch('/api/users/me')
+      .then(r => r.json())
+      .then(data => {
+        if (data.success && data.user?.name) {
+          setUserName(data.user.name)
+          localStorage.setItem('carebridge_user', JSON.stringify(data.user))
+        }
+      }).catch(() => {})
+
+    // Step 3: booking count
+    fetch('/api/bookings')
+      .then(r => r.json())
+      .then(data => {
+        if (data.success && data.bookings) {
+          const count = data.bookings.filter(
+            (b: any) => b.status === 'upcoming' || b.status === 'active'
+          ).length
+          setUpcomingCount(count)
+        }
+      }).catch(() => {})
+  }, [])
 
   const toggleOnline = () => {
     const next = !isOnline
@@ -98,6 +154,10 @@ export default function HomePage() {
     e.target.value = ''
   }
 
+  // ── Greeting based on time ────────────────────────────────
+  const hour = new Date().getHours()
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
+
   return (
     <MobileFrame>
       <div style={{ position:'absolute', inset:0, display:'flex', flexDirection:'column' }}>
@@ -111,8 +171,17 @@ export default function HomePage() {
         {/* Header */}
         <div style={{ background:'#fff', padding:'10px 16px 14px', display:'flex', alignItems:'center', justifyContent:'space-between', borderBottom:'1px solid #E2E8F0', flexShrink:0 }}>
           <div>
-            <div style={{ fontSize:'11px', color:'#94A3B8', fontWeight:600, textTransform:'uppercase', letterSpacing:'0.4px' }}>Good morning 👋</div>
-            <div style={{ fontSize:'19px', fontWeight:900, color:'#0F172A', letterSpacing:'-0.4px', marginTop:'2px' }}>Rajan Kumar</div>
+            <div style={{ fontSize:'11px', color:'#94A3B8', fontWeight:600, textTransform:'uppercase', letterSpacing:'0.4px' }}>{greeting} 👋</div>
+            <div style={{ fontSize:'19px', fontWeight:900, color:'#0F172A', letterSpacing:'-0.4px', marginTop:'2px' }}>{userName}</div>
+            {/* Booking count badge */}
+            {upcomingCount > 0 && (
+              <div style={{ display:'inline-flex', alignItems:'center', gap:'5px', marginTop:'5px', background:'#EDFAF7', borderRadius:'20px', padding:'3px 10px' }}>
+                <div style={{ width:'6px', height:'6px', borderRadius:'50%', background:'#0D9488' }} />
+                <span style={{ fontSize:'11px', fontWeight:700, color:'#0D9488' }}>
+                  {upcomingCount} Active Booking{upcomingCount > 1 ? 's' : ''}
+                </span>
+              </div>
+            )}
           </div>
           <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
             {/* Notification bell */}
@@ -139,45 +208,37 @@ export default function HomePage() {
         <div style={{ flex:1, overflowY:'auto', paddingBottom:'90px' }}>
 
           {/* SOS Emergency Banner */}
-          <div
-            onClick={() => router.push('/sos')}
-            style={{
-              margin: '12px 14px 0',
-              borderRadius: '16px',
-              background: 'linear-gradient(135deg,#FEF2F2,#FEE2E2)',
-              border: '1.5px solid #FECACA',
-              padding: '14px 16px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              cursor: 'pointer',
-              animation: 'sosPulse 2s infinite',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{
-                width: '42px', height: '42px', borderRadius: '13px',
-                background: '#DC2626',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                flexShrink: 0,
-                boxShadow: '0 4px 12px rgba(220,38,38,0.35)',
-              }}>
+          <div onClick={() => router.push('/sos')} style={{
+            margin:'12px 14px 0', borderRadius:'16px',
+            background:'linear-gradient(135deg,#FEF2F2,#FEE2E2)',
+            border:'1.5px solid #FECACA', padding:'14px 16px',
+            display:'flex', alignItems:'center', justifyContent:'space-between',
+            cursor:'pointer', animation:'sosPulse 2s infinite',
+          }}>
+            <div style={{ display:'flex', alignItems:'center', gap:'12px' }}>
+              <div style={{ width:'42px', height:'42px', borderRadius:'13px', background:'#DC2626', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, boxShadow:'0 4px 12px rgba(220,38,38,0.35)' }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round">
                   <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 015.11 12.7 19.79 19.79 0 012.12 4.1 2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/>
                 </svg>
               </div>
               <div>
-                <div style={{ fontSize: '14px', fontWeight: 800, color: '#991B1B' }}>
-                  SOS Emergency Available
-                </div>
-                <div style={{ fontSize: '12px', color: '#DC2626', marginTop: '2px', opacity: 0.85 }}>
-                  Tap for instant support · Response in 10 seconds
-                </div>
+                <div style={{ fontSize:'14px', fontWeight:800, color:'#991B1B' }}>SOS Emergency Available</div>
+                <div style={{ fontSize:'12px', color:'#DC2626', marginTop:'2px', opacity:0.85 }}>Tap for instant support · Response in 10 seconds</div>
               </div>
             </div>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2.5" strokeLinecap="round">
               <polyline points="9 18 15 12 9 6"/>
             </svg>
+          </div>
+
+          {/* Quick Actions */}
+          <div style={{ padding:'12px 14px 0' }}>
+            <div style={{ fontSize:'11px', fontWeight:700, color:'#64748B', textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:'10px' }}>Quick Actions</div>
+            <div style={{ display:'flex', gap:'10px' }}>
+              <QuickCard emoji="📋" bg="#EDFAF7" label="Active Bookings" sub="View requests"    onClick={() => router.push('/bookings')} />
+              <QuickCard emoji="💰" bg="#FEF3C7" label="Today's Earnings" sub="Check payouts"   onClick={() => router.push('/earnings')} />
+              <QuickCard emoji="🟢" bg="#F0FDF4" label="Go Online"        sub="Start accepting" onClick={toggleOnline} />
+            </div>
           </div>
 
           {/* Horizontal Ads */}
@@ -307,6 +368,7 @@ export default function HomePage() {
               </div>
             </div>
           )}
+
         </div>
       </div>
 
