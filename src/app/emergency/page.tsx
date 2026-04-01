@@ -135,7 +135,7 @@ function ContactCard({
   contact: EmergencyContact; index: number
   onEdit: () => void; onDelete: () => void; onCall: () => void
 }) {
-  const color = AVATAR_COLORS[index % AVATAR_COLORS.length]
+  const color    = AVATAR_COLORS[index % AVATAR_COLORS.length]
   const initials = contact.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
   return (
     <div style={{ margin: '0 14px 10px', background: '#fff', borderRadius: '18px', padding: '14px 16px', border: `1.5px solid ${contact.isPrimary ? '#CCFBF1' : '#E2E8F0'}`, position: 'relative' }}>
@@ -162,7 +162,7 @@ function ContactCard({
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="2.5" strokeLinecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           Edit
         </button>
-        <button onClick={onDelete} style={{ width: '40px', padding: '10px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '12px', fontSize: '13px', fontWeight: 700, color: '#DC2626', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <button onClick={onDelete} style={{ width: '40px', padding: '10px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2.5" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
         </button>
       </div>
@@ -171,17 +171,12 @@ function ContactCard({
 }
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
-const SEED: EmergencyContact[] = [
-  { id: 'ec1', name: 'Meena Kumar',  phone: '+91 98765 11111', relation: 'Spouse',  isPrimary: true  },
-  { id: 'ec2', name: 'Rajesh Kumar', phone: '+91 98765 22222', relation: 'Sibling', isPrimary: false },
-]
-
 export default function EmergencyPage() {
   const router = useRouter()
   const { showPopup, closePopup, emergencyContacts, setEmergencyContacts } = useStore()
 
-  // Use store contacts if available, else seed
-  const contacts = emergencyContacts.length > 0 ? emergencyContacts : SEED
+  // Use store contacts only — no static seed or national numbers
+  const contacts    = emergencyContacts
   const setContacts = (c: EmergencyContact[]) => setEmergencyContacts(c)
 
   const [sheetOpen,   setSheetOpen]   = useState(false)
@@ -192,16 +187,15 @@ export default function EmergencyPage() {
 
   const saveContact = (data: Omit<EmergencyContact, 'id'>) => {
     if (editContact) {
-      // update
       const updated = contacts.map(c => c.id === editContact.id ? { ...c, ...data } : c)
-      // ensure only one primary
-      const final = data.isPrimary ? updated.map(c => ({ ...c, isPrimary: c.id === editContact.id })) : updated
+      const final   = data.isPrimary ? updated.map(c => ({ ...c, isPrimary: c.id === editContact.id })) : updated
       setContacts(final)
       showPopup({ type: 'success', title: 'Contact Updated ✅', body: `${data.name}'s details have been saved.`, icon: '✅', actions: [{ label: 'OK', variant: 'primary', fn: closePopup }] })
     } else {
-      // add
       const newC: EmergencyContact = { ...data, id: `ec${Date.now()}` }
-      const updated = data.isPrimary ? [...contacts.map(c => ({ ...c, isPrimary: false })), newC] : [...contacts, newC]
+      const updated = data.isPrimary
+        ? [...contacts.map(c => ({ ...c, isPrimary: false })), newC]
+        : [...contacts, newC]
       setContacts(updated)
       showPopup({ type: 'success', title: 'Contact Added ✅', body: `${data.name} has been added as an emergency contact.`, icon: '✅', actions: [{ label: 'OK', variant: 'primary', fn: closePopup }] })
     }
@@ -213,7 +207,7 @@ export default function EmergencyPage() {
       body: `Remove ${c.name} from your emergency contacts?`,
       icon: '🗑️',
       actions: [
-        { label: 'Remove', variant: 'danger', fn: () => { setContacts(contacts.filter(x => x.id !== c.id)); closePopup() } },
+        { label: 'Remove', variant: 'danger',    fn: () => { setContacts(contacts.filter(x => x.id !== c.id)); closePopup() } },
         { label: 'Cancel', variant: 'secondary', fn: closePopup },
       ],
     })
@@ -222,8 +216,7 @@ export default function EmergencyPage() {
   const callContact = (c: EmergencyContact) => {
     showPopup({
       type: 'info', title: `Call ${c.name}?`,
-      body: `${c.relation} · ${c.phone}`,
-      icon: '📞',
+      body: `${c.relation} · ${c.phone}`, icon: '📞',
       actions: [
         { label: '📞 Call Now', variant: 'primary',   fn: () => { closePopup(); showPopup({ type: 'success', title: 'Calling…', body: `Dialling ${c.phone}`, icon: '📞', actions: [{ label: 'End Call', variant: 'danger', fn: closePopup }] }) } },
         { label: 'Cancel',     variant: 'secondary', fn: closePopup },
@@ -233,12 +226,13 @@ export default function EmergencyPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#0a0f1e', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      {/* Mobile Frame */}
       <div style={{ width: '390px', height: '844px', borderRadius: '48px', overflow: 'hidden', position: 'relative', flexShrink: 0, boxShadow: '0 0 0 10px #1e293b, 0 0 0 12px #334155, 0 40px 80px rgba(0,0,0,0.8)', background: '#F8FAFC' }}>
+
         {/* Notch */}
         <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: '126px', height: '34px', background: '#111827', borderRadius: '0 0 20px 20px', zIndex: 50 }} />
 
         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
+
           {/* Status bar */}
           <div style={{ height: '50px', padding: '14px 20px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fff', flexShrink: 0 }}>
             <span style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A' }}>9:41</span>
@@ -271,6 +265,20 @@ export default function EmergencyPage() {
               {contacts.length} Contact{contacts.length !== 1 ? 's' : ''} · Max 5
             </div>
 
+            {/* Empty state */}
+            {contacts.length === 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 24px', gap: '12px', textAlign: 'center' }}>
+                <div style={{ fontSize: '52px' }}>👥</div>
+                <div style={{ fontSize: '16px', fontWeight: 800, color: '#0F172A' }}>No Contacts Added</div>
+                <div style={{ fontSize: '13px', color: '#94A3B8', lineHeight: 1.6 }}>
+                  Add up to 5 emergency contacts who will be alerted when you trigger SOS.
+                </div>
+                <button onClick={openAdd} style={{ marginTop: '8px', padding: '12px 28px', background: '#0D9488', border: 'none', borderRadius: '14px', color: '#fff', fontSize: '14px', fontWeight: 700, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
+                  + Add First Contact
+                </button>
+              </div>
+            )}
+
             {/* Contact cards */}
             {contacts.map((c, i) => (
               <ContactCard
@@ -282,7 +290,7 @@ export default function EmergencyPage() {
             ))}
 
             {/* Add button */}
-            {contacts.length < 5 && (
+            {contacts.length > 0 && contacts.length < 5 && (
               <div style={{ margin: '4px 14px 0' }}>
                 <button onClick={openAdd}
                   style={{ width: '100%', padding: '14px', background: 'transparent', border: '2px dashed #CBD5E1', borderRadius: '18px', fontSize: '14px', fontWeight: 700, color: '#64748B', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
@@ -291,31 +299,6 @@ export default function EmergencyPage() {
                 </button>
               </div>
             )}
-
-            {/* National emergency numbers */}
-            <div style={{ margin: '16px 14px 0', background: '#fff', borderRadius: '18px', padding: '16px', border: '1px solid #E2E8F0' }}>
-              <div style={{ fontSize: '12px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: '12px' }}>National Emergency Numbers</div>
-              {[
-                { icon: '🚨', label: 'Emergency Helpline', num: '112', color: '#DC2626' },
-                { icon: '🚑', label: 'Ambulance',          num: '108', color: '#D97706' },
-                { icon: '👮', label: 'Police',             num: '100', color: '#2563EB' },
-                { icon: '🔥', label: 'Fire Brigade',       num: '101', color: '#EA580C' },
-              ].map((e, i, arr) => (
-                <div key={e.num} onClick={() => callContact({ id: e.num, name: e.label, phone: e.num, relation: 'Emergency Service' })}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 0', borderBottom: i < arr.length - 1 ? '1px solid #F1F5F9' : 'none', cursor: 'pointer' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '17px' }}>{e.icon}</div>
-                    <div style={{ fontSize: '14px', fontWeight: 600, color: '#0F172A' }}>{e.label}</div>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '18px', fontWeight: 900, color: e.color, fontVariantNumeric: 'tabular-nums' }}>{e.num}</span>
-                    <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: '#EDFAF7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0D9488" strokeWidth="2.5" strokeLinecap="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.79 19.79 0 012.12 8.7 2 2 0 014.11 6.5h3a2 2 0 012 1.72"/></svg>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
 
             <div style={{ height: '16px' }} />
           </div>
