@@ -198,6 +198,28 @@ export default function HomePage() {
               </div>
             </div>
 
+            {/* Map — moved below toggle */}
+            <div style={{ margin:'12px 14px', borderRadius:'18px', overflow:'hidden', background:'#fff', border:'1px solid #E2E8F0' }}>
+              <div style={{ padding:'12px 16px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                <span style={{ fontSize:'14px', fontWeight:800, color:'#0F172A' }}>Nearby Requests</span>
+                <span style={{ display:'flex', alignItems:'center', gap:'5px', fontSize:'11px', fontWeight:700, color:'#16A34A' }}>
+                  <div style={{ width:'7px', height:'7px', borderRadius:'50%', background:'#16A34A', animation:'livePulse 1.5s infinite' }} />Live
+                </span>
+              </div>
+              <svg width="100%" height="155" viewBox="0 0 362 155">
+                <rect width="362" height="155" fill="#ccede8"/>
+                <rect y="62" width="362" height="10" fill="#fff" opacity="0.55"/>
+                <rect y="108" width="362" height="10" fill="#fff" opacity="0.55"/>
+                <rect x="64" y="0" width="10" height="155" fill="#fff" opacity="0.55"/>
+                <rect x="168" y="0" width="10" height="155" fill="#fff" opacity="0.55"/>
+                <rect x="272" y="0" width="10" height="155" fill="#fff" opacity="0.55"/>
+                <circle cx="118" cy="52" r="10" fill="#DC2626" fillOpacity="0.2"/><circle cx="118" cy="52" r="6" fill="#DC2626"/>
+                <circle cx="252" cy="38" r="10" fill="#D97706" fillOpacity="0.2"/><circle cx="252" cy="38" r="6" fill="#D97706"/>
+                <circle cx="180" cy="116" r="16" fill="#0D9488" fillOpacity="0.15"/><circle cx="180" cy="116" r="10" fill="#0D9488"/><circle cx="180" cy="116" r="5" fill="#fff"/>
+                <text x="180" y="140" textAnchor="middle" fontSize="9" fill="#0D9488" fontFamily="DM Sans" fontWeight="700">You</text>
+              </svg>
+            </div>
+
             <div style={{ height:'12px' }} />
 
             {/* Earnings Card */}
@@ -242,28 +264,6 @@ export default function HomePage() {
                   </div>
                 ))}
               </div>
-            </div>
-
-            {/* Map */}
-            <div style={{ margin:'12px 14px', borderRadius:'18px', overflow:'hidden', background:'#fff', border:'1px solid #E2E8F0' }}>
-              <div style={{ padding:'12px 16px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-                <span style={{ fontSize:'14px', fontWeight:800, color:'#0F172A' }}>Nearby Requests</span>
-                <span style={{ display:'flex', alignItems:'center', gap:'5px', fontSize:'11px', fontWeight:700, color:'#16A34A' }}>
-                  <div style={{ width:'7px', height:'7px', borderRadius:'50%', background:'#16A34A', animation:'livePulse 1.5s infinite' }} />Live
-                </span>
-              </div>
-              <svg width="100%" height="155" viewBox="0 0 362 155">
-                <rect width="362" height="155" fill="#ccede8"/>
-                <rect y="62" width="362" height="10" fill="#fff" opacity="0.55"/>
-                <rect y="108" width="362" height="10" fill="#fff" opacity="0.55"/>
-                <rect x="64" y="0" width="10" height="155" fill="#fff" opacity="0.55"/>
-                <rect x="168" y="0" width="10" height="155" fill="#fff" opacity="0.55"/>
-                <rect x="272" y="0" width="10" height="155" fill="#fff" opacity="0.55"/>
-                <circle cx="118" cy="52" r="10" fill="#DC2626" fillOpacity="0.2"/><circle cx="118" cy="52" r="6" fill="#DC2626"/>
-                <circle cx="252" cy="38" r="10" fill="#D97706" fillOpacity="0.2"/><circle cx="252" cy="38" r="6" fill="#D97706"/>
-                <circle cx="180" cy="116" r="16" fill="#0D9488" fillOpacity="0.15"/><circle cx="180" cy="116" r="10" fill="#0D9488"/><circle cx="180" cy="116" r="5" fill="#fff"/>
-                <text x="180" y="140" textAnchor="middle" fontSize="9" fill="#0D9488" fontFamily="DM Sans" fontWeight="700">You</text>
-              </svg>
             </div>
 
             {isOnline && (
