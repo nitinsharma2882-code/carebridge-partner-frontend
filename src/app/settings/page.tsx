@@ -207,7 +207,7 @@ export default function SettingsPage() {
             {/* ── APP PREFERENCES ── */}
             <SectionHeader label="App Preferences" />
             <div style={{ margin: '0 14px', background: '#fff', borderRadius: '18px', overflow: 'hidden', border: '1px solid #E2E8F0' }}>
-              <Row icon="🌐" label="Preferred Language" sublabel="English, Hindi & more"       onPress={() => comingSoon('Preferred Language')} value="English" />
+              <Row icon="🌐" label="Preferred Language" sublabel="English, Hindi & more"       onPress={() => router.push('/settings/language')} value="English" />
               <Row icon="📍" label="Location Access"    sublabel="Always on for nearby jobs"   toggle toggled={locationAlways} onToggle={() => setLocationAlways(v => !v)} />
               <Row icon="🔊" label="Sound Alerts"       sublabel="Audible notifications"       toggle toggled={soundAlerts}    onToggle={() => setSoundAlerts(v => !v)} />
               <Row icon="📳" label="Vibration"          sublabel="Haptic feedback"             toggle toggled={vibration}      onToggle={() => setVibration(v => !v)} />
