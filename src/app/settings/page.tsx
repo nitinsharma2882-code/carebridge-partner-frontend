@@ -222,7 +222,7 @@ export default function SettingsPage() {
             <SectionHeader label="Privacy & Security" />
             <div style={{ margin: '0 14px', background: '#fff', borderRadius: '18px', overflow: 'hidden', border: '1px solid #E2E8F0' }}>
               <Row icon="👆" label="Biometric Login" sublabel="Face ID / Fingerprint"  toggle toggled={biometric} onToggle={() => setBiometric(v => !v)} />
-              <Row icon="🔑" label="Change PIN"      sublabel="Update your login PIN"   onPress={() => info('Change PIN', 'PIN change will be available in the next update.', '🔑')} />
+              <Row icon="🔑" label="Change PIN"      sublabel="Update your login PIN"   onPress={() => router.push('/settings/change-pin')} />
               <Row icon="📱" label="Linked Devices"  value="1 device"                  onPress={() => info('Linked Devices', 'Currently signed in on:\n📱 Xiaomi Redmi Note 12\nDelhi, India · Right now', '📱')} last />
             </div>
 
