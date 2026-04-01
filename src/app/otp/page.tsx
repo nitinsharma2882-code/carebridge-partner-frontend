@@ -3,7 +3,9 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useStore } from '@/lib/store'
 import { AuthAPI } from '@/lib/api'
-import { getDeviceId, registerSession, isSessionValid, clearSession } from '@/lib/device'
+import { getDeviceId, registerSession, isSessionValid } from '@/lib/device'
+
+const SESSION_DEVICE_KEY = 'cb_assistant_session_device'
 
 // ── Popup ─────────────────────────────────────────────────────────────────────
 function PopupLayer() {
@@ -54,7 +56,7 @@ export default function OTPPage() {
   const [loading, setLoading] = useState(false)
   const [resend,  setResend]  = useState(42)
   const refs = useRef<(HTMLInputElement | null)[]>([])
-  const { phone, setToken, setProfile, showPopup, closePopup, logout } = useStore()
+  const { phone, setToken, setProfile, showPopup, closePopup } = useStore()
   const router = useRouter()
 
   useEffect(() => {
@@ -85,13 +87,9 @@ export default function OTPPage() {
     const deviceId = getDeviceId()
 
     try {
-      // Pass deviceId to backend — backend should:
-      // 1. Validate OTP
-      // 2. Invalidate any existing session for this user on other devices
-      // 3. Return new token bound to this deviceId
-      const res = await AuthAPI.verifyOTP(phone, otp, deviceId)
+      // ── Real backend call (2 args — deviceId wired later) ──
+      const res = await AuthAPI.verifyOTP(phone, otp)
 
-      // Register this device as the active session locally
       registerSession(deviceId)
       setToken(res.data.token)
       if (res.data.profile) setProfile(res.data.profile)
@@ -104,10 +102,11 @@ export default function OTPPage() {
       })
 
     } catch {
-      // ── Prototype fallback (no real backend) ──
-      // Simulate single device logout: if another device was logged in,
-      // show a notice (in production this comes from backend response)
-      const prevSession = localStorage.getItem(SESSION_DEVICE_KEY)
+      // ── Prototype fallback ──
+      const prevSession = typeof window !== 'undefined'
+        ? localStorage.getItem(SESSION_DEVICE_KEY)
+        : null
+
       if (prevSession && prevSession !== deviceId) {
         showPopup({
           type: 'warning', title: 'Signed Out Elsewhere 📱',
