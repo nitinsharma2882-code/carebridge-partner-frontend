@@ -22,6 +22,17 @@ export interface EmergencyContact {
   isPrimary?: boolean
 }
 
+export interface Address {
+  id:         string
+  label:      'Home' | 'Work' | 'Other'
+  line1:      string
+  line2?:     string
+  city:       string
+  state:      string
+  pincode:    string
+  isDefault:  boolean
+}
+
 export interface BookingRequest {
   id:             string
   customerId:     string

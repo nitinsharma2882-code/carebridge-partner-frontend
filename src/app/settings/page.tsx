@@ -125,6 +125,9 @@ export default function SettingsPage() {
     })
   }
 
+  const comingSoon = (label: string) =>
+    info(label, 'This feature is coming in the next update!', '🔧')
+
   const handleLogout = () => {
     confirm('Log Out?', 'You will be signed out of your account.', '🚪', () => {
       logout()
@@ -142,9 +145,6 @@ export default function SettingsPage() {
       })
     })
   }
-
-  const comingSoon = (label: string) =>
-    info(label, 'This feature is coming in the next update!', '🔧')
 
   return (
     <div style={{ minHeight: '100vh', background: '#0a0f1e', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -188,11 +188,11 @@ export default function SettingsPage() {
             {/* ── ACCOUNT ── */}
             <SectionHeader label="Account" />
             <div style={{ margin: '0 14px', background: '#fff', borderRadius: '18px', overflow: 'hidden', border: '1px solid #E2E8F0' }}>
-              <Row icon="👤" label="Profile Details"    sublabel="Name, photo, contact info"   onPress={() => router.push('/profile')} />
-              <Row icon="📍" label="Manage Address"     sublabel="Home, work, saved places"    onPress={() => comingSoon('Manage Address')} />
-              <Row icon="🆘" label="Emergency Contacts" sublabel="Your SOS contacts"           onPress={() => router.push('/emergency')} />
-              <Row icon="📋" label="My Bookings"        sublabel="Past & upcoming bookings"    onPress={() => router.push('/bookings')} />
-              <Row icon="📁" label="My Documents"       sublabel="Stored health documents"     onPress={() => router.push('/documents')} last />
+              <Row icon="👤" label="Profile Details"    sublabel="Name, photo, contact info"  onPress={() => router.push('/profile')} />
+              <Row icon="📍" label="Manage Address"     sublabel="Home, work, saved places"   onPress={() => router.push('/settings/address')} />
+              <Row icon="🆘" label="Emergency Contacts" sublabel="Your SOS contacts"          onPress={() => router.push('/emergency')} />
+              <Row icon="📋" label="My Bookings"        sublabel="Past & upcoming bookings"   onPress={() => router.push('/bookings')} />
+              <Row icon="📁" label="My Documents"       sublabel="Stored health documents"    onPress={() => router.push('/documents')} last />
             </div>
 
             {/* ── NOTIFICATIONS ── */}
@@ -207,12 +207,12 @@ export default function SettingsPage() {
             {/* ── APP PREFERENCES ── */}
             <SectionHeader label="App Preferences" />
             <div style={{ margin: '0 14px', background: '#fff', borderRadius: '18px', overflow: 'hidden', border: '1px solid #E2E8F0' }}>
-              <Row icon="🌐" label="Preferred Language" sublabel="English, Hindi & more"      onPress={() => comingSoon('Preferred Language')} value="English" />
-              <Row icon="📍" label="Location Access"    sublabel="Always on for nearby jobs"  toggle toggled={locationAlways} onToggle={() => setLocationAlways(v => !v)} />
-              <Row icon="🔊" label="Sound Alerts"       sublabel="Audible notifications"      toggle toggled={soundAlerts}    onToggle={() => setSoundAlerts(v => !v)} />
-              <Row icon="📳" label="Vibration"          sublabel="Haptic feedback"            toggle toggled={vibration}      onToggle={() => setVibration(v => !v)} />
-              <Row icon="🌙" label="Dark Mode"          sublabel="Coming soon"                toggle toggled={darkMode}       onToggle={() => info('Dark Mode', 'Dark mode is coming in the next update!', '🌙')} />
-              <Row icon="⚡" label="Auto-Accept"        sublabel="Auto accept nearby requests" toggle toggled={autoAccept}   onToggle={() => {
+              <Row icon="🌐" label="Preferred Language" sublabel="English, Hindi & more"       onPress={() => comingSoon('Preferred Language')} value="English" />
+              <Row icon="📍" label="Location Access"    sublabel="Always on for nearby jobs"   toggle toggled={locationAlways} onToggle={() => setLocationAlways(v => !v)} />
+              <Row icon="🔊" label="Sound Alerts"       sublabel="Audible notifications"       toggle toggled={soundAlerts}    onToggle={() => setSoundAlerts(v => !v)} />
+              <Row icon="📳" label="Vibration"          sublabel="Haptic feedback"             toggle toggled={vibration}      onToggle={() => setVibration(v => !v)} />
+              <Row icon="🌙" label="Dark Mode"          sublabel="Coming soon"                 toggle toggled={darkMode}       onToggle={() => info('Dark Mode', 'Dark mode is coming in the next update!', '🌙')} />
+              <Row icon="⚡" label="Auto-Accept"        sublabel="Auto accept nearby requests" toggle toggled={autoAccept}     onToggle={() => {
                 if (!autoAccept) confirm('Enable Auto-Accept?', 'Requests within 2 km will be automatically accepted.', '⚡', () => setAutoAccept(true))
                 else setAutoAccept(false)
               }} last />
@@ -221,39 +221,39 @@ export default function SettingsPage() {
             {/* ── SECURITY ── */}
             <SectionHeader label="Privacy & Security" />
             <div style={{ margin: '0 14px', background: '#fff', borderRadius: '18px', overflow: 'hidden', border: '1px solid #E2E8F0' }}>
-              <Row icon="👆" label="Biometric Login"  sublabel="Face ID / Fingerprint"  toggle toggled={biometric} onToggle={() => setBiometric(v => !v)} />
-              <Row icon="🔑" label="Change PIN"       sublabel="Update your login PIN"   onPress={() => info('Change PIN', 'PIN change will be available in the next update.', '🔑')} />
-              <Row icon="📱" label="Linked Devices"   value="1 device"                  onPress={() => info('Linked Devices', 'Currently signed in on:\n📱 Xiaomi Redmi Note 12\nDelhi, India · Right now', '📱')} last />
+              <Row icon="👆" label="Biometric Login" sublabel="Face ID / Fingerprint"  toggle toggled={biometric} onToggle={() => setBiometric(v => !v)} />
+              <Row icon="🔑" label="Change PIN"      sublabel="Update your login PIN"   onPress={() => info('Change PIN', 'PIN change will be available in the next update.', '🔑')} />
+              <Row icon="📱" label="Linked Devices"  value="1 device"                  onPress={() => info('Linked Devices', 'Currently signed in on:\n📱 Xiaomi Redmi Note 12\nDelhi, India · Right now', '📱')} last />
             </div>
 
             {/* ── BILLING ── */}
             <SectionHeader label="Billing" />
             <div style={{ margin: '0 14px', background: '#fff', borderRadius: '18px', overflow: 'hidden', border: '1px solid #E2E8F0' }}>
-              <Row icon="💳" label="Billing Information"      sublabel="GST, address, invoices"      onPress={() => comingSoon('Billing Information')} />
-              <Row icon="🏦" label="Saved Cards"              sublabel="Manage payment methods"      onPress={() => comingSoon('Saved Cards')} />
-              <Row icon="💰" label="Payments & Transactions"  sublabel="History and receipts"        onPress={() => comingSoon('Payments & Transactions')} />
-              <Row icon="🎁" label="Gift Cards & Credits"     sublabel="Redeem & check balance"      onPress={() => comingSoon('Gift Cards & Credits')} />
-              <Row icon="👥" label="Invite a Friend"          sublabel="Earn rewards for referrals"  onPress={() => comingSoon('Invite a Friend')} last />
+              <Row icon="💳" label="Billing Information"     sublabel="GST, address, invoices"     onPress={() => comingSoon('Billing Information')} />
+              <Row icon="🏦" label="Saved Cards"             sublabel="Manage payment methods"     onPress={() => comingSoon('Saved Cards')} />
+              <Row icon="💰" label="Payments & Transactions" sublabel="History and receipts"       onPress={() => comingSoon('Payments & Transactions')} />
+              <Row icon="🎁" label="Gift Cards & Credits"    sublabel="Redeem & check balance"     onPress={() => comingSoon('Gift Cards & Credits')} />
+              <Row icon="👥" label="Invite a Friend"         sublabel="Earn rewards for referrals" onPress={() => comingSoon('Invite a Friend')} last />
             </div>
 
             {/* ── MORE ── */}
             <SectionHeader label="More" />
             <div style={{ margin: '0 14px', background: '#fff', borderRadius: '18px', overflow: 'hidden', border: '1px solid #E2E8F0' }}>
-              <Row icon="💬" label="Help & Support"          sublabel="Chat with our team"     onPress={() => info('Help & Support', 'Contact us at:\nsupport@carebridge.in\n\nAvailable Mon–Sat, 9 AM – 6 PM', '💬')} />
-              <Row icon="⭐" label="Rate the App"            sublabel="Share your feedback"    onPress={() => info('Rate CareBridge', 'Thank you! Rating opens the app store in the live version.', '⭐')} />
-              <Row icon="♿" label="Accessibility"            sublabel="Font size, contrast"    onPress={() => comingSoon('Accessibility')} />
-              <Row icon="📄" label="Terms & Conditions"                                        onPress={() => router.push('/terms')} />
-              <Row icon="🔒" label="Privacy Policy"                                            onPress={() => router.push('/privacy')} />
-              <Row icon="📦" label="Open Source Libraries"                                     onPress={() => comingSoon('Open Source Libraries')} />
-              <Row icon="🏅" label="Licenses & Registration"                                   onPress={() => comingSoon('Licenses & Registration')} />
-              <Row icon="ℹ️" label="App Version"             value="v2.5.0"                   onPress={() => info('CareBridge Assistant', 'Version 2.5.0\nBuild 2026.04.01\n\n© 2026 CareBridge Technologies', 'ℹ️')} last />
+              <Row icon="💬" label="Help & Support"          sublabel="Chat with our team"  onPress={() => info('Help & Support', 'Contact us at:\nsupport@carebridge.in\n\nAvailable Mon–Sat, 9 AM – 6 PM', '💬')} />
+              <Row icon="⭐" label="Rate the App"            sublabel="Share your feedback" onPress={() => info('Rate CareBridge', 'Thank you! Rating opens the app store in the live version.', '⭐')} />
+              <Row icon="♿" label="Accessibility"            sublabel="Font size, contrast"  onPress={() => comingSoon('Accessibility')} />
+              <Row icon="📄" label="Terms & Conditions"                                      onPress={() => router.push('/terms')} />
+              <Row icon="🔒" label="Privacy Policy"                                          onPress={() => router.push('/privacy')} />
+              <Row icon="📦" label="Open Source Libraries"                                   onPress={() => comingSoon('Open Source Libraries')} />
+              <Row icon="🏅" label="Licenses & Registration"                                 onPress={() => comingSoon('Licenses & Registration')} />
+              <Row icon="ℹ️" label="App Version" value="v2.5.0"                             onPress={() => info('CareBridge Assistant', 'Version 2.5.0\nBuild 2026.04.01\n\n© 2026 CareBridge Technologies', 'ℹ️')} last />
             </div>
 
             {/* ── DANGER ZONE ── */}
             <SectionHeader label="Account Actions" />
             <div style={{ margin: '0 14px', background: '#fff', borderRadius: '18px', overflow: 'hidden', border: '1px solid #E2E8F0' }}>
-              <Row icon="🚪" label="Log Out"         danger onPress={handleLogout} />
-              <Row icon="🗑️" label="Delete Account"  sublabel="Permanently remove your account" danger onPress={handleDeleteAccount} last />
+              <Row icon="🚪" label="Log Out"        danger onPress={handleLogout} />
+              <Row icon="🗑️" label="Delete Account" sublabel="Permanently remove your account" danger onPress={handleDeleteAccount} last />
             </div>
 
             <div style={{ height: '16px' }} />
