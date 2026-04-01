@@ -3,25 +3,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useStore } from '@/lib/store'
 import { AuthAPI } from '@/lib/api'
-
-// ── Device ID helper ──────────────────────────────────────────────────────────
-// Generates a unique device ID and persists it for the lifetime of this device.
-// On login, this is sent to the backend so it can invalidate any other session.
-const DEVICE_ID_KEY = 'cb_assistant_device_id'
-
-function getOrCreateDeviceId(): string {
-  if (typeof window === 'undefined') return ''
-  let id = localStorage.getItem(DEVICE_ID_KEY)
-  if (!id) {
-    id = `dev_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
-    localStorage.setItem(DEVICE_ID_KEY, id)
-  }
-  return id
-}
-
-export function getDeviceId(): string {
-  return getOrCreateDeviceId()
-}
+import { getOrCreateDeviceId } from '@/lib/device'
 
 // ── Popup ─────────────────────────────────────────────────────────────────────
 function PopupLayer() {

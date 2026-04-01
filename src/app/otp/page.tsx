@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useStore } from '@/lib/store'
 import { AuthAPI } from '@/lib/api'
-import { getDeviceId } from '@/app/login/page'
+import { getDeviceId } from '@/lib/device'
 
 const SESSION_DEVICE_KEY = 'cb_assistant_session_device'
 
