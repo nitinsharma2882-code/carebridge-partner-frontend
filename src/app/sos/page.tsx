@@ -69,8 +69,20 @@ export default function SOSPage() {
 
   const cancel = () => { setSOS(false); router.back() }
 
-  const requestAmbulance = () =>
+  const [ambulanceETA,    setAmbulanceETA]    = useState(8)   // minutes
+  const [ambulanceActive, setAmbulanceActive] = useState(false)
+
+  const requestAmbulance = () => {
     updateStep('s4', 'done', 'Ambulance assistance', 'Nearest ambulance dispatched')
+    setAmbulanceActive(true)
+    // Count down ETA every 10s for demo
+    const t = setInterval(() => {
+      setAmbulanceETA(e => {
+        if (e <= 1) { clearInterval(t); return 0 }
+        return e - 1
+      })
+    }, 10000)
+  }
 
   return (
     <MobileFrame hideSOS>
@@ -246,12 +258,58 @@ export default function SOSPage() {
               </div>
             )}
 
-            {steps.find(s => s.id==='s4')?.status === 'done' && (
-              <div style={{ background:'rgba(34,197,94,0.18)', borderRadius:'18px', padding:'14px 16px', border:'1px solid rgba(34,197,94,0.4)', display:'flex', alignItems:'center', gap:'10px' }}>
-                <span style={{ fontSize:'22px' }}>🚑</span>
-                <div>
-                  <div style={{ fontSize:'14px', fontWeight:700, color:'#fff' }}>Ambulance Dispatched</div>
-                  <div style={{ fontSize:'12px', color:'rgba(255,255,255,0.7)', marginTop:'2px' }}>Nearest ambulance is on the way</div>
+            {steps.find(s => s.id==='s4')?.status === 'done' && ambulanceActive && (
+              <div style={{ background:'rgba(255,255,255,0.12)', borderRadius:'18px', border:'1px solid rgba(34,197,94,0.4)', overflow:'hidden' }}>
+                {/* Header */}
+                <div style={{ background:'rgba(34,197,94,0.2)', padding:'12px 16px', display:'flex', alignItems:'center', gap:'10px', borderBottom:'1px solid rgba(34,197,94,0.2)' }}>
+                  <span style={{ fontSize:'20px' }}>🚑</span>
+                  <div style={{ flex:1 }}>
+                    <div style={{ fontSize:'14px', fontWeight:800, color:'#fff' }}>Ambulance Dispatched</div>
+                    <div style={{ fontSize:'11px', color:'rgba(255,255,255,0.7)', marginTop:'1px' }}>On the way to your location</div>
+                  </div>
+                  <div style={{ background:'#22c55e', borderRadius:'100px', padding:'4px 12px' }}>
+                    <span style={{ fontSize:'12px', fontWeight:800, color:'#fff' }}>
+                      {ambulanceETA > 0 ? `${ambulanceETA} min` : 'Arriving'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Driver details */}
+                <div style={{ padding:'14px 16px' }}>
+                  <div style={{ fontSize:'10px', fontWeight:700, color:'rgba(255,255,255,0.5)', textTransform:'uppercase', letterSpacing:'0.8px', marginBottom:'10px' }}>Driver Details</div>
+                  <div style={{ display:'flex', alignItems:'center', gap:'12px', marginBottom:'12px' }}>
+                    <div style={{ width:'46px', height:'46px', borderRadius:'50%', background:'rgba(255,255,255,0.2)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'14px', fontWeight:800, color:'#fff', flexShrink:0 }}>
+                      RK
+                    </div>
+                    <div style={{ flex:1 }}>
+                      <div style={{ fontSize:'14px', fontWeight:800, color:'#fff' }}>Ramesh Kumar</div>
+                      <div style={{ fontSize:'12px', color:'rgba(255,255,255,0.65)', marginTop:'1px' }}>AIIMS Ambulance Service</div>
+                      <div style={{ display:'flex', alignItems:'center', gap:'5px', marginTop:'3px' }}>
+                        <div style={{ width:'7px', height:'7px', borderRadius:'50%', background:'#22c55e', animation:'livePulse 1.5s infinite' }} />
+                        <span style={{ fontSize:'11px', fontWeight:700, color:'#22c55e' }}>En route to you</span>
+                      </div>
+                    </div>
+                    <a href="tel:108" style={{ width:'38px', height:'38px', borderRadius:'50%', background:'#22c55e', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, textDecoration:'none' }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round">
+                        <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.79 19.79 0 012.12 4.7 2 2 0 014.11 2.5h3a2 2 0 012 1.72"/>
+                      </svg>
+                    </a>
+                  </div>
+
+                  {/* Vehicle info */}
+                  <div style={{ display:'flex', gap:'8px' }}>
+                    {[
+                      { icon:'🚑', label:'Vehicle',  val:'DL 1234 AB' },
+                      { icon:'⏱️', label:'ETA',       val: ambulanceETA > 0 ? `${ambulanceETA} min` : 'Arriving now' },
+                      { icon:'📍', label:'Distance', val:'2.1 km' },
+                    ].map(info => (
+                      <div key={info.label} style={{ flex:1, background:'rgba(255,255,255,0.1)', borderRadius:'12px', padding:'10px 8px', textAlign:'center' }}>
+                        <div style={{ fontSize:'16px' }}>{info.icon}</div>
+                        <div style={{ fontSize:'12px', fontWeight:800, color:'#fff', marginTop:'3px' }}>{info.val}</div>
+                        <div style={{ fontSize:'9px', color:'rgba(255,255,255,0.5)', marginTop:'1px', fontWeight:600 }}>{info.label}</div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
