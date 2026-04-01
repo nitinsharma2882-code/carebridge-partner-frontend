@@ -44,17 +44,17 @@ function PopupLayer() {
 // ── Doc status badge ─────────────────────────────────────────────────────────
 type DocStatus = 'verified' | 'pending' | 'rejected' | 'missing'
 const docBadge: Record<DocStatus, { bg: string; color: string; label: string; icon: string }> = {
-  verified: { bg: '#DCFCE7', color: '#16A34A', label: 'Verified',  icon: '✓' },
-  pending:  { bg: '#FEF3C7', color: '#D97706', label: 'Pending',   icon: '⏳' },
-  rejected: { bg: '#FEE2E2', color: '#DC2626', label: 'Rejected',  icon: '✕' },
-  missing:  { bg: '#F1F5F9', color: '#94A3B8', label: 'Upload',    icon: '+' },
+  verified: { bg: '#DCFCE7', color: '#16A34A', label: 'Verified', icon: '✓' },
+  pending:  { bg: '#FEF3C7', color: '#D97706', label: 'Pending',  icon: '⏳' },
+  rejected: { bg: '#FEE2E2', color: '#DC2626', label: 'Rejected', icon: '✕' },
+  missing:  { bg: '#F1F5F9', color: '#94A3B8', label: 'Upload',   icon: '+' },
 }
 
 const DOCS = [
-  { id: 'd1', type: 'Aadhaar Card',       status: 'verified' as DocStatus, icon: '🪪' },
-  { id: 'd2', type: 'Care Certificate',   status: 'pending'  as DocStatus, icon: '📋' },
-  { id: 'd3', type: 'Medical License',    status: 'verified' as DocStatus, icon: '🏥' },
-  { id: 'd4', type: 'Police Clearance',   status: 'missing'  as DocStatus, icon: '🛡️' },
+  { id: 'd1', type: 'Aadhaar Card',     status: 'verified' as DocStatus, icon: '🪪' },
+  { id: 'd2', type: 'Care Certificate', status: 'pending'  as DocStatus, icon: '📋' },
+  { id: 'd3', type: 'Medical License',  status: 'verified' as DocStatus, icon: '🏥' },
+  { id: 'd4', type: 'Police Clearance', status: 'missing'  as DocStatus, icon: '🛡️' },
 ]
 
 const SKILLS = ['Elder Care', 'Nursing', 'Physiotherapy', 'Medication', 'First Aid', 'Palliative Care']
@@ -81,7 +81,6 @@ export default function ProfilePage() {
   }
 
   const onDocPress = (doc: typeof DOCS[0]) => {
-    const b = docBadge[doc.status]
     showPopup({
       type: doc.status === 'verified' ? 'success' : doc.status === 'rejected' ? 'error' : 'info',
       title: doc.type,
@@ -94,7 +93,19 @@ export default function ProfilePage() {
         : 'No document uploaded yet. Tap to upload.',
       icon: doc.icon,
       actions: [
-        ...(doc.status !== 'verified' ? [{ label: doc.status === 'missing' ? 'Upload Now' : 'Re-upload', variant: 'primary' as const, fn: () => { closePopup(); showPopup({ type: 'info', title: 'Upload Feature', body: 'Document upload will open your camera/gallery in the live app.', icon: '📷', actions: [{ label: 'OK', variant: 'primary' as const, fn: closePopup }] }) } }] : []),
+        ...(doc.status !== 'verified' ? [{
+          label: doc.status === 'missing' ? 'Upload Now' : 'Re-upload',
+          variant: 'primary' as const,
+          fn: () => {
+            closePopup()
+            showPopup({
+              type: 'info', title: 'Upload Feature',
+              body: 'Document upload will open your camera/gallery in the live app.',
+              icon: '📷',
+              actions: [{ label: 'OK', variant: 'primary' as const, fn: closePopup }],
+            })
+          },
+        }] : []),
         { label: 'Close', variant: 'secondary' as const, fn: closePopup },
       ],
     })
@@ -117,6 +128,7 @@ export default function ProfilePage() {
         <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: '126px', height: '34px', background: '#111827', borderRadius: '0 0 20px 20px', zIndex: 50 }} />
 
         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
+
           {/* Status bar */}
           <div style={{ height: '50px', padding: '14px 20px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fff', flexShrink: 0 }}>
             <span style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A' }}>9:41</span>
@@ -128,7 +140,8 @@ export default function ProfilePage() {
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><polyline points="15 18 9 12 15 6" stroke="#334155" strokeWidth="2.5" strokeLinecap="round"/></svg>
             </button>
             <span style={{ flex: 1, textAlign: 'center', fontSize: '17px', fontWeight: 800, color: '#0F172A' }}>My Profile</span>
-            <button onClick={() => editMode ? saveProfile() : setEditMode(true)} style={{ background: editMode ? '#0D9488' : '#EDFAF7', border: 'none', borderRadius: '10px', padding: '0 14px', height: '34px', fontSize: '13px', fontWeight: 700, color: editMode ? '#fff' : '#0D9488', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
+            <button onClick={() => editMode ? saveProfile() : setEditMode(true)}
+              style={{ background: editMode ? '#0D9488' : '#EDFAF7', border: 'none', borderRadius: '10px', padding: '0 14px', height: '34px', fontSize: '13px', fontWeight: 700, color: editMode ? '#fff' : '#0D9488', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
               {editMode ? 'Save' : 'Edit'}
             </button>
           </div>
@@ -138,7 +151,6 @@ export default function ProfilePage() {
 
             {/* Hero */}
             <div style={{ background: 'linear-gradient(160deg,#065f52,#0D9488,#14b8a6)', padding: '24px 20px 28px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
-              {/* Avatar */}
               <div style={{ position: 'relative' }}>
                 <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(255,255,255,0.25)', border: '3px solid rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px' }}>
                   👨‍⚕️
@@ -153,7 +165,6 @@ export default function ProfilePage() {
                 <div style={{ fontSize: '22px', fontWeight: 900, color: '#fff', letterSpacing: '-0.4px' }}>{name}</div>
                 <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.75)', marginTop: '3px' }}>Healthcare Assistant · {city}</div>
               </div>
-              {/* Stats row */}
               <div style={{ display: 'flex', gap: '8px', marginTop: '4px', width: '100%' }}>
                 {[{ v: '4.9★', l: 'Rating' }, { v: '104', l: 'Trips' }, { v: exp, l: 'Exp' }].map(s => (
                   <div key={s.l} style={{ flex: 1, background: 'rgba(255,255,255,0.15)', borderRadius: '12px', padding: '10px 8px', textAlign: 'center' }}>
@@ -162,7 +173,6 @@ export default function ProfilePage() {
                   </div>
                 ))}
               </div>
-              {/* Verified badge */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'rgba(255,255,255,0.15)', borderRadius: '100px', padding: '5px 14px' }}>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
                 <span style={{ fontSize: '12px', fontWeight: 700, color: '#fff' }}>CareBridge Verified Partner</span>
@@ -214,11 +224,11 @@ export default function ProfilePage() {
             {/* Documents */}
             <div style={{ margin: '12px 14px 0', background: '#fff', borderRadius: '18px', padding: '16px', border: '1px solid #E2E8F0' }}>
               <div style={{ fontSize: '12px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: '12px' }}>Documents</div>
-              {DOCS.map(doc => {
+              {DOCS.map((doc, i) => {
                 const b = docBadge[doc.status]
                 return (
                   <div key={doc.id} onClick={() => onDocPress(doc)}
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #F1F5F9', cursor: 'pointer' }}>
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: i < DOCS.length - 1 ? '1px solid #F1F5F9' : 'none', cursor: 'pointer' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                       <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>{doc.icon}</div>
                       <div style={{ fontSize: '14px', fontWeight: 600, color: '#0F172A' }}>{doc.type}</div>
@@ -229,25 +239,6 @@ export default function ProfilePage() {
                   </div>
                 )
               })}
-            </div>
-
-            {/* Quick links */}
-            <div style={{ margin: '12px 14px 0', background: '#fff', borderRadius: '18px', padding: '6px 0', border: '1px solid #E2E8F0' }}>
-              {[
-                { icon: '🚨', label: 'Emergency Contacts', href: '/emergency', color: '#DC2626' },
-                { icon: '⚙️', label: 'Settings',           href: '/settings',  color: '#475569' },
-                { icon: '📄', label: 'Terms of Service',   href: '/terms',     color: '#475569' },
-                { icon: '🔒', label: 'Privacy Policy',     href: '/privacy',   color: '#475569' },
-              ].map((item, i, arr) => (
-                <button key={item.href} onClick={() => router.push(item.href)}
-                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', background: 'transparent', border: 'none', borderBottom: i < arr.length - 1 ? '1px solid #F1F5F9' : 'none', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <span style={{ fontSize: '18px' }}>{item.icon}</span>
-                    <span style={{ fontSize: '14px', fontWeight: 600, color: item.color }}>{item.label}</span>
-                  </div>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
-                </button>
-              ))}
             </div>
 
             <div style={{ height: '16px' }} />
