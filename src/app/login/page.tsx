@@ -86,8 +86,8 @@ export default function LoginPage() {
     setLoading(true)
     try {
       // Pass deviceId so backend can invalidate previous sessions
-      const deviceId = getOrCreateDeviceId()
-      await AuthAPI.sendOTP(clean, deviceId)
+      getOrCreateDeviceId() // ensure device ID is created before OTP
+      await AuthAPI.sendOTP(clean)
       storePhone(clean)
       router.push('/otp')
     } catch {
