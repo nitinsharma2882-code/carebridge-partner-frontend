@@ -80,6 +80,11 @@ export default function DocumentsPage() {
     })
   }
 
+  // ── View / Download / Share handlers ─────────────────────
+  const handleView     = (doc: Doc) => showPopup({ type:'info',    title:`Viewing: ${doc.name}`,     icon:'👁️', body:`Opening ${doc.name} for preview.\nFile size: ${doc.size}\nUploaded: ${doc.date}`,      actions:[{ label:'Close',    variant:'secondary', fn:closePopup }] })
+  const handleDownload = (doc: Doc) => showPopup({ type:'success', title:'Download Started',          icon:'⬇️', body:`${doc.name} is being downloaded.\nFile size: ${doc.size}`,                             actions:[{ label:'OK',       variant:'primary',   fn:closePopup }] })
+  const handleShare    = (doc: Doc) => showPopup({ type:'info',    title:'Share Document',            icon:'📤', body:`Share "${doc.name}" via:\nWhatsApp, Email, or copy link.`,                             actions:[{ label:'Copy Link', variant:'primary',   fn:closePopup }, { label:'Cancel', variant:'secondary', fn:closePopup }] })
+
   return (
     <MobileFrame>
       <div style={{ position:'absolute', inset:0, display:'flex', flexDirection:'column' }}>
@@ -124,20 +129,37 @@ export default function DocumentsPage() {
               <div style={{ fontSize:'13px', color:'#94A3B8', textAlign:'center' }}>Tap Upload to add your first document</div>
             </div>
           ) : filtered.map(doc => (
-            <div key={doc.id} style={{ background:'#fff', borderRadius:'16px', padding:'14px', marginBottom:'10px', display:'flex', alignItems:'center', gap:'12px', border:'1px solid #E2E8F0' }}>
-              <div style={{ width:'46px', height:'46px', borderRadius:'13px', background:'#F1F5F9', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'22px', flexShrink:0 }}>{doc.icon}</div>
-              <div style={{ flex:1, minWidth:0 }}>
-                <div style={{ fontSize:'13px', fontWeight:700, color:'#0F172A', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{doc.name}</div>
-                <div style={{ display:'flex', gap:'8px', marginTop:'4px', alignItems:'center' }}>
-                  <span style={{ fontSize:'10px', fontWeight:700, color:'#0D9488', background:'#EDFAF7', padding:'2px 8px', borderRadius:'100px' }}>{doc.category}</span>
-                  <span style={{ fontSize:'11px', color:'#94A3B8' }}>{doc.size} · {doc.date}</span>
+            <div key={doc.id} style={{ background:'#fff', borderRadius:'16px', padding:'14px', marginBottom:'10px', border:'1px solid #E2E8F0' }}>
+              {/* Doc info row */}
+              <div style={{ display:'flex', alignItems:'center', gap:'12px', marginBottom:'10px' }}>
+                <div style={{ width:'46px', height:'46px', borderRadius:'13px', background:'#F1F5F9', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'22px', flexShrink:0 }}>{doc.icon}</div>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontSize:'13px', fontWeight:700, color:'#0F172A', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{doc.name}</div>
+                  <div style={{ display:'flex', gap:'8px', marginTop:'4px', alignItems:'center' }}>
+                    <span style={{ fontSize:'10px', fontWeight:700, color:'#0D9488', background:'#EDFAF7', padding:'2px 8px', borderRadius:'100px' }}>{doc.category}</span>
+                    <span style={{ fontSize:'11px', color:'#94A3B8' }}>{doc.size} · {doc.date}</span>
+                  </div>
                 </div>
               </div>
-              <button onClick={() => handleDelete(doc)} style={{ width:'32px', height:'32px', borderRadius:'50%', background:'#FEE2E2', border:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2.5" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
-              </button>
+
+              {/* ── Action buttons: View · Download · Share · Delete ── */}
+              <div style={{ display:'flex', gap:'6px' }}>
+                <button onClick={() => handleView(doc)} style={{ flex:1, padding:'8px 4px', background:'#F8FAFC', border:'1px solid #E2E8F0', borderRadius:'10px', fontSize:'11px', fontWeight:700, color:'#475569', cursor:'pointer', fontFamily:'DM Sans, sans-serif', display:'flex', alignItems:'center', justifyContent:'center', gap:'4px' }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="2.5" strokeLinecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>View
+                </button>
+                <button onClick={() => handleDownload(doc)} style={{ flex:1, padding:'8px 4px', background:'#EDFAF7', border:'1px solid #CCFBF1', borderRadius:'10px', fontSize:'11px', fontWeight:700, color:'#0D9488', cursor:'pointer', fontFamily:'DM Sans, sans-serif', display:'flex', alignItems:'center', justifyContent:'center', gap:'4px' }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0D9488" strokeWidth="2.5" strokeLinecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download
+                </button>
+                <button onClick={() => handleShare(doc)} style={{ flex:1, padding:'8px 4px', background:'#EFF6FF', border:'1px solid #BFDBFE', borderRadius:'10px', fontSize:'11px', fontWeight:700, color:'#2563EB', cursor:'pointer', fontFamily:'DM Sans, sans-serif', display:'flex', alignItems:'center', justifyContent:'center', gap:'4px' }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="2.5" strokeLinecap="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>Share
+                </button>
+                <button onClick={() => handleDelete(doc)} style={{ width:'36px', padding:'8px', background:'#FEF2F2', border:'1px solid #FECACA', borderRadius:'10px', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2.5" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+                </button>
+              </div>
             </div>
           ))}
+
           <div onClick={handleUpload} style={{ background:'#fff', borderRadius:'16px', padding:'18px', border:'2px dashed #CBD5E1', display:'flex', flexDirection:'column', alignItems:'center', gap:'8px', cursor:'pointer', marginTop:'4px' }}>
             <div style={{ width:'44px', height:'44px', borderRadius:'50%', background:'#EDFAF7', display:'flex', alignItems:'center', justifyContent:'center' }}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0D9488" strokeWidth="2.5" strokeLinecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>

@@ -1,11 +1,10 @@
 'use client'
-import { useState, useRef, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useStore } from '@/lib/store'
 import BottomNav from '@/components/BottomNav'
 import MobileFrame from '@/components/MobileFrame'
 
-// ── Popup ─────────────────────────────────────────────────────────────────────
 function PopupLayer() {
   const { popup, closePopup } = useStore()
   if (!popup) return null
@@ -37,27 +36,16 @@ function PopupLayer() {
   )
 }
 
-// ── QuickCard ─────────────────────────────────────────────────────────────────
-function QuickCard({ emoji, bg, label, sub, onClick }: {
-  emoji: string; bg: string; label: string; sub: string; onClick: () => void
-}) {
+function QuickCard({ emoji, bg, label, sub, onClick }: { emoji:string; bg:string; label:string; sub:string; onClick:()=>void }) {
   return (
-    <div onClick={onClick} style={{
-      flex: 1, background: '#fff', border: '1px solid #E2E8F0',
-      borderRadius: '16px', padding: '14px', cursor: 'pointer',
-      display: 'flex', flexDirection: 'column', gap: '8px',
-    }}>
-      <div style={{
-        width: '36px', height: '36px', borderRadius: '11px', background: bg,
-        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px',
-      }}>{emoji}</div>
+    <div onClick={onClick} style={{ flex:1, background:'#fff', border:'1px solid #E2E8F0', borderRadius:'16px', padding:'14px', cursor:'pointer', display:'flex', flexDirection:'column', gap:'8px' }}>
+      <div style={{ width:'36px', height:'36px', borderRadius:'11px', background:bg, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'18px' }}>{emoji}</div>
       <div style={{ fontSize:'13px', fontWeight:700, color:'#0F172A' }}>{label}</div>
       <div style={{ fontSize:'11px', color:'#94A3B8', marginTop:'-4px' }}>{sub}</div>
     </div>
   )
 }
 
-// ── Ads & bulletin data ───────────────────────────────────────────────────────
 const ADS = [
   { id:1, label:'Sponsored', title:'Apollo HomeHealth', sub:'Earn up to ₹800/visit',  icon:'🏥', gradient:'linear-gradient(135deg,#0047AB,#0070CC)', cta:'Learn →', ctaColor:'#2563EB', body:'Partner with Apollo to earn up to ₹800/visit.\nJoin 2,000+ partners already earning more.' },
   { id:2, label:'Promoted',  title:'Medlife Medicines', sub:'50% off first order',    icon:'💊', gradient:'linear-gradient(135deg,#e65c00,#f9d423)', cta:'Shop →',  ctaColor:'#D97706', body:'50% off on first order for your patients.\nOrder directly to patient homes.' },
@@ -70,48 +58,50 @@ const BULLETIN_ITEMS = [
   '🧒 Child Helpline: 1098', '⚡ Disaster: 1070',
 ]
 
-// ── Main Page ─────────────────────────────────────────────────────────────────
 export default function HomePage() {
   const [isOnline,      setIsOnline]      = useState(false)
   const [onlineTime,    setOnlineTime]    = useState('Go online to earn')
   const [userName,      setUserName]      = useState('there')
   const [upcomingCount, setUpcomingCount] = useState(0)
-  const fileRef = useRef<HTMLInputElement>(null)
   const router  = useRouter()
   const { showPopup, closePopup } = useStore()
 
-  // ── Fetch real username + booking count ──────────────────
   useEffect(() => {
-    // Step 1: instant from localStorage
+    // Username from localStorage then API
     try {
       const saved = localStorage.getItem('carebridge_user')
-      if (saved) {
-        const u = JSON.parse(saved)
-        if (u.name) setUserName(u.name)
-      }
+      if (saved) { const u = JSON.parse(saved); if (u.name) setUserName(u.name) }
     } catch {}
+    fetch('/api/users/me').then(r=>r.json()).then(data => {
+      if (data.success && data.user?.name) {
+        setUserName(data.user.name)
+        localStorage.setItem('carebridge_user', JSON.stringify(data.user))
+      }
+    }).catch(()=>{})
 
-    // Step 2: latest from backend
-    fetch('/api/users/me')
-      .then(r => r.json())
-      .then(data => {
-        if (data.success && data.user?.name) {
-          setUserName(data.user.name)
-          localStorage.setItem('carebridge_user', JSON.stringify(data.user))
-        }
-      }).catch(() => {})
+    // Booking count
+    fetch('/api/bookings').then(r=>r.json()).then(data => {
+      if (data.success && data.bookings) {
+        const count = data.bookings.filter((b:any) => b.status==='upcoming' || b.status==='active').length
+        setUpcomingCount(count)
+      }
+    }).catch(()=>{})
 
-    // Step 3: booking count
-    fetch('/api/bookings')
-      .then(r => r.json())
-      .then(data => {
-        if (data.success && data.bookings) {
-          const count = data.bookings.filter(
-            (b: any) => b.status === 'upcoming' || b.status === 'active'
-          ).length
-          setUpcomingCount(count)
+    // ── Issue 17: Location permission check ──────────────
+    if (navigator?.permissions) {
+      navigator.permissions.query({ name:'geolocation' }).then(result => {
+        if (result.state === 'denied') {
+          showPopup({
+            type:'warning', title:'Location Disabled', icon:'📍',
+            body:'Please enable location access from App Preferences to receive nearby booking requests.',
+            actions:[
+              { label:'Open Settings', variant:'primary',   fn:() => { closePopup(); router.push('/settings') } },
+              { label:'Dismiss',       variant:'secondary', fn:closePopup },
+            ],
+          })
         }
-      }).catch(() => {})
+      }).catch(()=>{})
+    }
   }, [])
 
   const toggleOnline = () => {
@@ -127,34 +117,6 @@ export default function HomePage() {
     })
   }
 
-  const handleDocUpload = () => {
-    showPopup({
-      type:'info', title:'Upload Medical Document',
-      body:'Upload your medical documents securely.\nSupported: PDF, JPG, PNG (max 10MB)',
-      icon:'📤',
-      actions:[
-        { label:'Choose File',   variant:'primary',   fn:() => { closePopup(); fileRef.current?.click() } },
-        { label:'View All Docs', variant:'secondary', fn:() => { closePopup(); router.push('/documents') } },
-      ],
-    })
-  }
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]; if (!file) return
-    if (file.size > 10*1024*1024) {
-      showPopup({ type:'error', title:'File Too Large', body:'Please select a file under 10MB.', icon:'❌', actions:[{ label:'OK', variant:'primary', fn:closePopup }] })
-      return
-    }
-    showPopup({ type:'success', title:'Uploaded! ✅', body:`${file.name} uploaded successfully.`, icon:'✅',
-      actions:[
-        { label:'Done',      variant:'primary',   fn:closePopup },
-        { label:'View Docs', variant:'secondary', fn:() => { closePopup(); router.push('/documents') } },
-      ],
-    })
-    e.target.value = ''
-  }
-
-  // ── Greeting based on time ────────────────────────────────
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
 
@@ -173,26 +135,20 @@ export default function HomePage() {
           <div>
             <div style={{ fontSize:'11px', color:'#94A3B8', fontWeight:600, textTransform:'uppercase', letterSpacing:'0.4px' }}>{greeting} 👋</div>
             <div style={{ fontSize:'19px', fontWeight:900, color:'#0F172A', letterSpacing:'-0.4px', marginTop:'2px' }}>{userName}</div>
-            {/* Booking count badge */}
             {upcomingCount > 0 && (
               <div style={{ display:'inline-flex', alignItems:'center', gap:'5px', marginTop:'5px', background:'#EDFAF7', borderRadius:'20px', padding:'3px 10px' }}>
                 <div style={{ width:'6px', height:'6px', borderRadius:'50%', background:'#0D9488' }} />
-                <span style={{ fontSize:'11px', fontWeight:700, color:'#0D9488' }}>
-                  {upcomingCount} Active Booking{upcomingCount > 1 ? 's' : ''}
-                </span>
+                <span style={{ fontSize:'11px', fontWeight:700, color:'#0D9488' }}>{upcomingCount} Active Booking{upcomingCount > 1 ? 's' : ''}</span>
               </div>
             )}
           </div>
-          <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
-            {/* Notification bell */}
-            <button onClick={() => router.push('/notifications')}
-              style={{ width:'38px', height:'38px', borderRadius:'50%', background:'#F1F5F9', border:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', position:'relative' }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round">
-                <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/>
-              </svg>
-              <div style={{ position:'absolute', top:'7px', right:'7px', width:'9px', height:'9px', background:'#DC2626', borderRadius:'50%', border:'2px solid #fff' }} />
-            </button>
-          </div>
+          <button onClick={() => router.push('/notifications')}
+            style={{ width:'38px', height:'38px', borderRadius:'50%', background:'#F1F5F9', border:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', position:'relative' }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round">
+              <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/>
+            </svg>
+            <div style={{ position:'absolute', top:'7px', right:'7px', width:'9px', height:'9px', background:'#DC2626', borderRadius:'50%', border:'2px solid #fff' }} />
+          </button>
         </div>
 
         {/* Bulletin marquee */}
@@ -207,14 +163,8 @@ export default function HomePage() {
         {/* Scrollable content */}
         <div style={{ flex:1, overflowY:'auto', paddingBottom:'90px' }}>
 
-          {/* SOS Emergency Banner */}
-          <div onClick={() => router.push('/sos')} style={{
-            margin:'12px 14px 0', borderRadius:'16px',
-            background:'linear-gradient(135deg,#FEF2F2,#FEE2E2)',
-            border:'1.5px solid #FECACA', padding:'14px 16px',
-            display:'flex', alignItems:'center', justifyContent:'space-between',
-            cursor:'pointer', animation:'sosPulse 2s infinite',
-          }}>
+          {/* SOS Banner */}
+          <div onClick={() => router.push('/sos')} style={{ margin:'12px 14px 0', borderRadius:'16px', background:'linear-gradient(135deg,#FEF2F2,#FEE2E2)', border:'1.5px solid #FECACA', padding:'14px 16px', display:'flex', alignItems:'center', justifyContent:'space-between', cursor:'pointer', animation:'sosPulse 2s infinite' }}>
             <div style={{ display:'flex', alignItems:'center', gap:'12px' }}>
               <div style={{ width:'42px', height:'42px', borderRadius:'13px', background:'#DC2626', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, boxShadow:'0 4px 12px rgba(220,38,38,0.35)' }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round">
@@ -226,9 +176,7 @@ export default function HomePage() {
                 <div style={{ fontSize:'12px', color:'#DC2626', marginTop:'2px', opacity:0.85 }}>Tap for instant support · Response in 10 seconds</div>
               </div>
             </div>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2.5" strokeLinecap="round">
-              <polyline points="9 18 15 12 9 6"/>
-            </svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
           </div>
 
           {/* Quick Actions */}
@@ -248,8 +196,7 @@ export default function HomePage() {
             </div>
             <div style={{ display:'flex', gap:'10px', overflowX:'auto', padding:'0 14px 4px', scrollbarWidth:'none' }}>
               {ADS.map(ad => (
-                <div key={ad.id}
-                  onClick={() => showPopup({ type:'info', title:ad.title, body:ad.body, icon:'🏥', actions:[{ label:'Learn More', variant:'primary', fn:closePopup }, { label:'Dismiss', variant:'secondary', fn:closePopup }] })}
+                <div key={ad.id} onClick={() => showPopup({ type:'info', title:ad.title, body:ad.body, icon:'🏥', actions:[{ label:'Learn More', variant:'primary', fn:closePopup },{ label:'Dismiss', variant:'secondary', fn:closePopup }] })}
                   style={{ minWidth:'200px', borderRadius:'16px', border:'1px solid #E2E8F0', background:'#fff', cursor:'pointer', overflow:'hidden', flexShrink:0 }}>
                   <div style={{ fontSize:'9px', fontWeight:700, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.8px', textAlign:'right', padding:'5px 10px 0' }}>{ad.label}</div>
                   <div style={{ display:'flex', alignItems:'center', gap:'10px', padding:'6px 12px 12px' }}>
@@ -322,37 +269,21 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Upload Medical Docs */}
-          <div style={{ margin:'12px 14px 0', background:'#fff', borderRadius:'18px', border:'1px solid #E2E8F0', overflow:'hidden' }}>
-            <div style={{ padding:'14px 16px 10px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-              <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
-                <div style={{ width:'32px', height:'32px', borderRadius:'10px', background:'#EDFAF7', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'16px' }}>📋</div>
-                <div>
-                  <div style={{ fontSize:'14px', fontWeight:800, color:'#0F172A' }}>Medical Documents</div>
-                  <div style={{ fontSize:'11px', color:'#94A3B8', marginTop:'1px' }}>Store & manage your health records</div>
-                </div>
-              </div>
-              <button onClick={() => router.push('/documents')} style={{ fontSize:'11px', fontWeight:700, color:'#0D9488', background:'none', border:'none', cursor:'pointer' }}>View All →</button>
-            </div>
-            <div style={{ display:'flex', gap:'8px', padding:'0 14px 14px' }}>
-              <div onClick={handleDocUpload} style={{ flex:1, background:'#F8FAFC', borderRadius:'14px', padding:'14px 12px', display:'flex', flexDirection:'column', alignItems:'center', gap:'6px', cursor:'pointer', border:'1.5px dashed #CBD5E1' }}>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0D9488" strokeWidth="2.5" strokeLinecap="round">
-                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-                </svg>
-                <span style={{ fontSize:'12px', fontWeight:700, color:'#0D9488' }}>Upload</span>
-              </div>
-              {[{icon:'🩸',label:'Blood'},{icon:'🪪',label:'ID Proof'},{icon:'📜',label:'Certificate'}].map(q => (
-                <div key={q.label} onClick={handleDocUpload} style={{ flex:1, background:'#F8FAFC', borderRadius:'14px', padding:'14px 8px', display:'flex', flexDirection:'column', alignItems:'center', gap:'6px', cursor:'pointer', border:'1px solid #E2E8F0' }}>
-                  <span style={{ fontSize:'20px' }}>{q.icon}</span>
-                  <span style={{ fontSize:'10px', fontWeight:700, color:'#64748B', textAlign:'center' }}>{q.label}</span>
-                </div>
+          {/* ── Issue 12: Coming Soon Banner (replaces Medical Documents) ── */}
+          <div style={{ margin:'12px 14px 0', borderRadius:'18px', background:'linear-gradient(135deg,#0F172A,#134E4A)', border:'1px solid #1E293B', padding:'20px 16px', display:'flex', flexDirection:'column', alignItems:'center', gap:'10px' }}>
+            <div style={{ fontSize:'28px' }}>🚀</div>
+            <div style={{ fontSize:'15px', fontWeight:800, color:'#fff', textAlign:'center' }}>More Features Coming Soon</div>
+            <div style={{ fontSize:'12px', color:'rgba(255,255,255,0.6)', textAlign:'center', lineHeight:1.6 }}>Document management, health records, and more are on their way!</div>
+            <div style={{ display:'flex', gap:'6px', marginTop:'4px' }}>
+              {[0,1,2].map(i => (
+                <div key={i} style={{ width:i===0?'20px':'6px', height:'6px', borderRadius:'100px', background:i===0?'#0D9488':'rgba(255,255,255,0.3)' }} />
               ))}
             </div>
           </div>
 
-          {/* New request banner */}
+          {/* New request banner (when online) */}
           {isOnline && (
-            <div onClick={() => router.push('/booking')}
+            <div onClick={() => router.push('/bookings')}
               style={{ margin:'12px 14px', borderRadius:'18px', background:'#fff', border:'2px solid #0D9488', padding:'14px 16px', display:'flex', alignItems:'center', justifyContent:'space-between', cursor:'pointer', animation:'fadeIn 0.4s ease' }}>
               <div style={{ display:'flex', alignItems:'center', gap:'12px' }}>
                 <div style={{ width:'42px', height:'42px', borderRadius:'13px', background:'#EDFAF7', display:'flex', alignItems:'center', justifyContent:'center' }}>
@@ -372,12 +303,8 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Hidden file input */}
-      <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png" style={{ display:'none' }} onChange={handleFileChange} />
-
       <BottomNav active="Home" />
       <PopupLayer />
-
       <style>{`
         @keyframes sosPulse  { 0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,0.5);}60%{box-shadow:0 0 0 10px rgba(220,38,38,0);} }
         @keyframes livePulse { 0%,100%{box-shadow:0 0 0 0 rgba(22,163,74,0.5);}60%{box-shadow:0 0 0 7px rgba(22,163,74,0);} }

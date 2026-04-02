@@ -67,7 +67,6 @@ export default function SettingsPage() {
   const [soundAlerts,   setSoundAlerts]   = useState(true)
   const [vibration,     setVibration]     = useState(true)
   const [biometric,     setBiometric]     = useState(false)
-  const [autoAccept,    setAutoAccept]    = useState(false)
 
   const confirm=(title:string,body:string,icon:string,onConfirm:()=>void)=>showPopup({ type:'confirm',title,body,icon, actions:[{ label:'Confirm',variant:'danger',fn:()=>{ closePopup(); onConfirm() } },{ label:'Cancel',variant:'secondary',fn:closePopup }] })
   const info=(title:string,body:string,icon:string)=>showPopup({ type:'info',title,body,icon, actions:[{ label:'OK',variant:'primary',fn:closePopup }] })
@@ -121,8 +120,7 @@ export default function SettingsPage() {
             <Row icon="📍" label="Location Access"    sublabel="Always on for nearby jobs"   toggle toggled={locationAlways} onToggle={()=>setLocationAlways(v=>!v)} />
             <Row icon="🔊" label="Sound Alerts"       sublabel="Audible notifications"       toggle toggled={soundAlerts}    onToggle={()=>setSoundAlerts(v=>!v)} />
             <Row icon="📳" label="Vibration"          sublabel="Haptic feedback"             toggle toggled={vibration}      onToggle={()=>setVibration(v=>!v)} />
-            <Row icon="🌙" label="Dark Mode"          sublabel="Coming soon"                 toggle toggled={darkMode}       onToggle={()=>info('Dark Mode','Dark mode is coming in the next update!','🌙')} />
-            <Row icon="⚡" label="Auto-Accept"        sublabel="Auto accept nearby requests" toggle toggled={autoAccept}     onToggle={()=>{ if(!autoAccept) confirm('Enable Auto-Accept?','Requests within 2 km will be automatically accepted.','⚡',()=>setAutoAccept(true)); else setAutoAccept(false) }} last />
+            <Row icon="🌙" label="Dark Mode" sublabel="Coming soon" toggle toggled={darkMode} onToggle={()=>info('Dark Mode','Dark mode is coming in the next update!','🌙')} last />
           </div>
 
           <SectionHeader label="Privacy & Security" />
@@ -147,7 +145,13 @@ export default function SettingsPage() {
             <Row icon="♿" label="Accessibility"            sublabel="Font size, contrast"  onPress={()=>router.push('/settings/accessibility')} />
             <Row icon="📄" label="Terms & Conditions"                                      onPress={()=>router.push('/terms')} />
             <Row icon="🔒" label="Privacy Policy"                                          onPress={()=>router.push('/privacy')} />
-            <Row icon="📦" label="Open Source Libraries"                                   onPress={()=>comingSoon('Open Source Libraries')} />
+            <Row icon="📦" label="Open Source Libraries" onPress={()=>showPopup({
+  type:'info',
+  title:'Open Source Libraries',
+  icon:'📦',
+  body:'Next.js 14 · React 18 · TypeScript\nTailwind CSS · Zustand · SWR\ndate-fns · lucide-react · clsx\n\n© Respective authors. MIT License.',
+  actions:[{ label:'OK', variant:'primary', fn:closePopup }]
+})} />
             <Row icon="🏅" label="Licenses & Registration"                                 onPress={()=>comingSoon('Licenses & Registration')} />
             <Row icon="ℹ️" label="App Version" value="v2.5.0"                             onPress={()=>info('CareBridge Assistant','Version 2.5.0\nBuild 2026.04.01\n\n© 2026 CareBridge Technologies','ℹ️')} last />
           </div>

@@ -127,17 +127,38 @@ export default function ManageAddressPage() {
         <div style={{ height:'50px', padding:'14px 20px 0', display:'flex', alignItems:'center', justifyContent:'space-between', background:'#fff', flexShrink:0 }}>
           <span style={{ fontSize:'12px', fontWeight:700, color:'#0F172A' }}>9:41</span>
         </div>
+
+        {/* ── Top nav: "+" button REMOVED ── */}
         <div style={{ height:'56px', background:'#fff', display:'flex', alignItems:'center', padding:'0 16px', gap:'10px', borderBottom:'1px solid #E2E8F0', flexShrink:0 }}>
-          <button onClick={()=>router.back()} style={{ width:'38px', height:'38px', borderRadius:'50%', background:'#F1F5F9', border:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><polyline points="15 18 9 12 15 6" stroke="#334155" strokeWidth="2.5" strokeLinecap="round"/></svg></button>
+          <button onClick={()=>router.back()} style={{ width:'38px', height:'38px', borderRadius:'50%', background:'#F1F5F9', border:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><polyline points="15 18 9 12 15 6" stroke="#334155" strokeWidth="2.5" strokeLinecap="round"/></svg>
+          </button>
           <span style={{ flex:1, textAlign:'center', fontSize:'17px', fontWeight:800, color:'#0F172A' }}>Manage Address</span>
-          <button onClick={openAdd} style={{ width:'38px', height:'38px', borderRadius:'50%', background:'#EDFAF7', border:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0D9488" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+          <div style={{ width:'38px' }} />
         </div>
+
         <div style={{ flex:1, overflowY:'auto', paddingBottom:'24px' }}>
-          <div style={{ margin:'14px 14px 16px', background:'#EFF6FF', borderRadius:'16px', padding:'13px 16px', display:'flex', gap:'10px', border:'1px solid #BFDBFE' }}><span style={{ fontSize:'18px', flexShrink:0 }}>📍</span><div style={{ fontSize:'13px', color:'#1E40AF', lineHeight:1.55 }}>Your <strong>default address</strong> is used for bookings and service requests by default.</div></div>
+          <div style={{ margin:'14px 14px 16px', background:'#EFF6FF', borderRadius:'16px', padding:'13px 16px', display:'flex', gap:'10px', border:'1px solid #BFDBFE' }}>
+            <span style={{ fontSize:'18px', flexShrink:0 }}>📍</span>
+            <div style={{ fontSize:'13px', color:'#1E40AF', lineHeight:1.55 }}>Your <strong>default address</strong> is used for bookings and service requests by default.</div>
+          </div>
           <div style={{ fontSize:'11px', fontWeight:700, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.6px', padding:'0 16px 10px' }}>{addresses.length} Saved Address{addresses.length!==1?'es':''} · Max 5</div>
-          {addresses.length===0&&(<div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'40px 24px', gap:'12px', textAlign:'center' }}><div style={{ fontSize:'52px' }}>🏠</div><div style={{ fontSize:'16px', fontWeight:800, color:'#0F172A' }}>No Addresses Saved</div><div style={{ fontSize:'13px', color:'#94A3B8', lineHeight:1.6 }}>Add your home, work, or other addresses for quick access during bookings.</div><button onClick={openAdd} style={{ marginTop:'8px', padding:'12px 28px', background:'#0D9488', border:'none', borderRadius:'14px', color:'#fff', fontSize:'14px', fontWeight:700, cursor:'pointer', fontFamily:'DM Sans, sans-serif' }}>+ Add First Address</button></div>)}
+          {addresses.length===0&&(
+            <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'40px 24px', gap:'12px', textAlign:'center' }}>
+              <div style={{ fontSize:'52px' }}>🏠</div>
+              <div style={{ fontSize:'16px', fontWeight:800, color:'#0F172A' }}>No Addresses Saved</div>
+              <div style={{ fontSize:'13px', color:'#94A3B8', lineHeight:1.6 }}>Add your home, work, or other addresses for quick access during bookings.</div>
+              <button onClick={openAdd} style={{ marginTop:'8px', padding:'12px 28px', background:'#0D9488', border:'none', borderRadius:'14px', color:'#fff', fontSize:'14px', fontWeight:700, cursor:'pointer', fontFamily:'DM Sans, sans-serif' }}>+ Add First Address</button>
+            </div>
+          )}
           {addresses.map(a=><AddressCard key={a.id} address={a} onEdit={()=>openEdit(a)} onDelete={()=>deleteAddress(a)} onSetDefault={()=>setDefault(a.id)} />)}
-          {addresses.length>0&&addresses.length<5&&(<div style={{ margin:'4px 14px 0' }}><button onClick={openAdd} style={{ width:'100%', padding:'14px', background:'transparent', border:'2px dashed #CBD5E1', borderRadius:'18px', fontSize:'14px', fontWeight:700, color:'#64748B', cursor:'pointer', fontFamily:'DM Sans, sans-serif', display:'flex', alignItems:'center', justifyContent:'center', gap:'8px' }}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add New Address</button></div>)}
+          {addresses.length>0&&addresses.length<5&&(
+            <div style={{ margin:'4px 14px 0' }}>
+              <button onClick={openAdd} style={{ width:'100%', padding:'14px', background:'transparent', border:'2px dashed #CBD5E1', borderRadius:'18px', fontSize:'14px', fontWeight:700, color:'#64748B', cursor:'pointer', fontFamily:'DM Sans, sans-serif', display:'flex', alignItems:'center', justifyContent:'center', gap:'8px' }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add New Address
+              </button>
+            </div>
+          )}
           {addresses.length>=5&&(<div style={{ margin:'4px 14px 0', background:'#FEF3C7', borderRadius:'14px', padding:'12px 16px', border:'1px solid #FDE68A', fontSize:'13px', color:'#92400E', fontWeight:600, textAlign:'center' }}>⚠️ Maximum 5 addresses reached. Delete one to add more.</div>)}
           <div style={{ height:'16px' }} />
         </div>
