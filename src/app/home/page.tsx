@@ -4,6 +4,9 @@ import { useRouter } from 'next/navigation'
 import { useStore } from '@/lib/store'
 import BottomNav from '@/components/BottomNav'
 import MobileFrame from '@/components/MobileFrame'
+import { SponsoredSection } from '@/components/SponsoredSection'
+import { ComingSoonSection } from '@/components/ComingSoonSection'
+import { AdDetailScreen } from '@/components/AdDetailScreen'
 
 function PopupLayer() {
   const { popup, closePopup } = useStore()
@@ -36,7 +39,6 @@ function PopupLayer() {
   )
 }
 
-// ── Issue 6: Only 2 QuickCards — Go Online removed ────────
 function QuickCard({ emoji, bg, label, sub, onClick }: { emoji:string; bg:string; label:string; sub:string; onClick:()=>void }) {
   return (
     <div onClick={onClick} style={{ flex:1, background:'#fff', border:'1px solid #E2E8F0', borderRadius:'16px', padding:'14px', cursor:'pointer', display:'flex', flexDirection:'column', gap:'8px' }}>
@@ -47,19 +49,12 @@ function QuickCard({ emoji, bg, label, sub, onClick }: { emoji:string; bg:string
   )
 }
 
-const ADS = [
-  { id:1, label:'Sponsored', title:'Apollo HomeHealth', sub:'Earn up to ₹800/visit',  icon:'🏥', gradient:'linear-gradient(135deg,#0047AB,#0070CC)', cta:'Learn →', ctaColor:'#2563EB', body:'Partner with Apollo to earn up to ₹800/visit.\nJoin 2,000+ partners already earning more.' },
-  { id:2, label:'Promoted',  title:'Medlife Medicines', sub:'50% off first order',    icon:'💊', gradient:'linear-gradient(135deg,#e65c00,#f9d423)', cta:'Shop →',  ctaColor:'#D97706', body:'50% off on first order for your patients.\nOrder directly to patient homes.' },
-  { id:3, label:'Sponsored', title:'Practo Health',     sub:'Earn ₹200/referral',     icon:'🩺', gradient:'linear-gradient(135deg,#0D9488,#065f52)', cta:'Join →',  ctaColor:'#0D9488', body:'Refer patients to Practo and earn ₹200 per referral.\nUnlimited earning potential!' },
-]
-
 const BULLETIN_ITEMS = [
   '🚑 Ambulance: 108', '🚓 Police: 100', '🔥 Fire: 101',
   '🏥 Medical Helpline: 104', '👩 Women Helpline: 1091',
   '🧒 Child Helpline: 1098', '⚡ Disaster: 1070',
 ]
 
-// ── Issue 5: Testimonials data ────────────────────────────
 const TESTIMONIALS = [
   { name:'Rajan K',  stars:5, quote:'CareBridge helped me earn ₹18,000 last month working just 5 hours a day!', initials:'RK', bg:'#EDFAF7', color:'#0D9488' },
   { name:'Sunita M', stars:5, quote:'The app is very easy to use and bookings come regularly in my area.',        initials:'SM', bg:'#EFF6FF', color:'#2563EB' },
@@ -67,24 +62,25 @@ const TESTIMONIALS = [
 ]
 
 export default function HomePage() {
-  const [isOnline,      setIsOnline]      = useState(false)
-  const [onlineTime,    setOnlineTime]    = useState('Go online to earn')
-  const [userName,      setUserName]      = useState('there')
-  const [upcomingCount, setUpcomingCount] = useState(0)
-  const router  = useRouter()
+  const [isOnline,          setIsOnline]          = useState(false)
+  const [onlineTime,        setOnlineTime]        = useState('Go online to earn')
+  const [userName,          setUserName]          = useState('there')
+  const [upcomingCount,     setUpcomingCount]     = useState(0)
+  const [adScreen,          setAdScreen]          = useState(false)
+  const [adData,            setAdData]            = useState<{ title:string; badge:string; sub:string } | null>(null)
+  const [comingSoonScreen,  setComingSoonScreen]  = useState(false)
+
+  const router = useRouter()
   const { showPopup, closePopup } = useStore()
 
   useEffect(() => {
-    // ── Issue 3: Restore online state from localStorage ──
+    // Restore online state
     try {
       const savedOnline = localStorage.getItem('carebridge_partner_online')
-      if (savedOnline === 'true') {
-        setIsOnline(true)
-        setOnlineTime('Online')
-      }
+      if (savedOnline === 'true') { setIsOnline(true); setOnlineTime('Online') }
     } catch {}
 
-    // Username from localStorage then API
+    // Username
     try {
       const saved = localStorage.getItem('carebridge_user')
       if (saved) { const u = JSON.parse(saved); if (u.name) setUserName(u.name) }
@@ -104,7 +100,7 @@ export default function HomePage() {
       }
     }).catch(()=>{})
 
-    // Location permission check
+    // Location permission
     if (navigator?.permissions) {
       navigator.permissions.query({ name:'geolocation' }).then(result => {
         if (result.state === 'denied') {
@@ -121,7 +117,6 @@ export default function HomePage() {
     }
   }, [])
 
-  // ── Issue 3: Persist online state to localStorage ─────
   const toggleOnline = () => {
     const next = !isOnline
     setIsOnline(next)
@@ -133,6 +128,20 @@ export default function HomePage() {
       body: next ? 'You are now visible to customers.\nRequests will appear here.' : "You won't receive any requests while offline.",
       icon: next ? '🟢' : '⚫',
       actions: [{ label:'OK', variant:'primary', fn:closePopup }],
+    })
+  }
+
+  const handleAdClick = (ad: { title:string; badge:string; sub:string }) => {
+    setAdData(ad)
+    setAdScreen(true)
+  }
+
+  const handleAdConfirm = () => {
+    setAdScreen(false)
+    showPopup({
+      type:'success', title:'Request Sent! ✅', icon:'✅',
+      body:`We have received your request for ${adData?.title.replace('\n',' ')}.\nOur team will contact you shortly.`,
+      actions:[{ label:'OK', variant:'primary', fn:closePopup }],
     })
   }
 
@@ -198,7 +207,7 @@ export default function HomePage() {
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
           </div>
 
-          {/* ── Issue 6: Quick Actions — Go Online card REMOVED ── */}
+          {/* Quick Actions — 2 cards only */}
           <div style={{ padding:'12px 14px 0' }}>
             <div style={{ fontSize:'11px', fontWeight:700, color:'#64748B', textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:'10px' }}>Quick Actions</div>
             <div style={{ display:'flex', gap:'10px' }}>
@@ -207,31 +216,8 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* ── Issue 8: Sponsored & Promoted ── */}
-          <div style={{ padding:'12px 0 0' }}>
-            <div style={{ padding:'0 14px 8px' }}>
-              <span style={{ fontSize:'11px', fontWeight:700, color:'#64748B', textTransform:'uppercase', letterSpacing:'0.5px' }}>Sponsored & Promoted</span>
-            </div>
-            <div style={{ display:'flex', gap:'10px', overflowX:'auto', padding:'0 14px 4px', scrollbarWidth:'none' }}>
-              {ADS.map(ad => (
-                <div key={ad.id} onClick={() => showPopup({ type:'info', title:ad.title, body:ad.body, icon:'🏥', actions:[{ label:'Learn More', variant:'primary', fn:closePopup },{ label:'Dismiss', variant:'secondary', fn:closePopup }] })}
-                  style={{ minWidth:'200px', borderRadius:'16px', border:'1px solid #E2E8F0', background:'#fff', cursor:'pointer', overflow:'hidden', flexShrink:0 }}>
-                  <div style={{ fontSize:'9px', fontWeight:700, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.8px', textAlign:'right', padding:'5px 10px 0' }}>{ad.label}</div>
-                  <div style={{ display:'flex', alignItems:'center', gap:'10px', padding:'6px 12px 12px' }}>
-                    <div style={{ width:'40px', height:'40px', borderRadius:'11px', background:ad.gradient, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, fontSize:'20px' }}>{ad.icon}</div>
-                    <div style={{ flex:1 }}>
-                      <div style={{ fontSize:'12px', fontWeight:700, color:'#0F172A' }}>{ad.title}</div>
-                      <div style={{ fontSize:'11px', color:'#64748B', marginTop:'2px' }}>{ad.sub}</div>
-                    </div>
-                    <div style={{ fontSize:'11px', fontWeight:700, color:ad.ctaColor, flexShrink:0 }}>{ad.cta}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
           {/* Online Toggle */}
-          <div style={{ background:'#fff', padding:'12px 14px 10px', borderTop:'1px solid #E2E8F0', borderBottom:'1px solid #E2E8F0', marginTop:'10px' }}>
+          <div style={{ background:'#fff', padding:'12px 14px 10px', borderTop:'1px solid #E2E8F0', borderBottom:'1px solid #E2E8F0', marginTop:'12px' }}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'10px' }}>
               <span style={{ fontSize:'11px', fontWeight:700, color:'#64748B', textTransform:'uppercase', letterSpacing:'0.5px' }}>Your Status</span>
               <span style={{ fontSize:'12px', color:'#94A3B8' }}>{onlineTime}</span>
@@ -247,7 +233,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* ── Issue 1: New Request card moved here — only when online ── */}
+          {/* New Request — only when online, between toggle and map */}
           {isOnline && (
             <div onClick={() => router.push('/bookings')}
               style={{ margin:'10px 14px 0', borderRadius:'18px', background:'#fff', border:'2px solid #0D9488', padding:'14px 16px', display:'flex', alignItems:'center', justifyContent:'space-between', cursor:'pointer', animation:'fadeIn 0.4s ease' }}>
@@ -306,19 +292,13 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* ── Issue 7: Coming Soon Banner ── */}
-          <div style={{ margin:'12px 14px 0', borderRadius:'18px', background:'linear-gradient(135deg,#0F172A,#134E4A)', border:'1px solid #1E293B', padding:'20px 16px', display:'flex', flexDirection:'column', alignItems:'center', gap:'10px' }}>
-            <div style={{ fontSize:'28px' }}>🚀</div>
-            <div style={{ fontSize:'15px', fontWeight:800, color:'#fff', textAlign:'center' }}>More Features Coming Soon</div>
-            <div style={{ fontSize:'12px', color:'rgba(255,255,255,0.6)', textAlign:'center', lineHeight:1.6 }}>Document management, health records, and more are on their way!</div>
-            <div style={{ display:'flex', gap:'6px', marginTop:'4px' }}>
-              {[0,1,2].map(i => (
-                <div key={i} style={{ width:i===0?'20px':'6px', height:'6px', borderRadius:'100px', background:i===0?'#0D9488':'rgba(255,255,255,0.3)' }} />
-              ))}
-            </div>
-          </div>
+          {/* Sponsored & Promoted — Consumer App style */}
+          <SponsoredSection onAdClick={handleAdClick} />
 
-          {/* ── Issue 5: Testimonials ── */}
+          {/* Coming Soon — Consumer App style */}
+          <ComingSoonSection onItemClick={() => setComingSoonScreen(true)} />
+
+          {/* Testimonials */}
           <div style={{ padding:'16px 0 0' }}>
             <div style={{ padding:'0 14px 10px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
               <span style={{ fontSize:'11px', fontWeight:700, color:'#64748B', textTransform:'uppercase', letterSpacing:'0.5px' }}>What Partners Say</span>
@@ -327,15 +307,12 @@ export default function HomePage() {
             <div style={{ display:'flex', gap:'10px', overflowX:'auto', padding:'0 14px 4px', scrollbarWidth:'none' }}>
               {TESTIMONIALS.map((t, i) => (
                 <div key={i} style={{ minWidth:'220px', background:'#fff', borderRadius:'18px', padding:'16px', border:'1px solid #E2E8F0', flexShrink:0 }}>
-                  {/* Stars */}
                   <div style={{ display:'flex', gap:'2px', marginBottom:'10px' }}>
                     {Array.from({ length:5 }).map((_,s) => (
                       <span key={s} style={{ fontSize:'13px', color: s < t.stars ? '#F59E0B' : '#E2E8F0' }}>★</span>
                     ))}
                   </div>
-                  {/* Quote */}
                   <div style={{ fontSize:'12px', color:'#475569', lineHeight:1.65, marginBottom:'12px' }}>"{t.quote}"</div>
-                  {/* Avatar + Name */}
                   <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
                     <div style={{ width:'32px', height:'32px', borderRadius:'50%', background:t.bg, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'11px', fontWeight:800, color:t.color, flexShrink:0 }}>{t.initials}</div>
                     <div style={{ fontSize:'12px', fontWeight:700, color:'#0F172A' }}>{t.name}</div>
@@ -348,6 +325,46 @@ export default function HomePage() {
           <div style={{ height:'16px' }} />
         </div>
       </div>
+
+      {/* Ad Detail full screen overlay */}
+      {adScreen && (
+        <div style={{ position:'absolute', inset:0, zIndex:200 }}>
+          <AdDetailScreen
+            ad={adData}
+            onBack={() => setAdScreen(false)}
+            onConfirm={handleAdConfirm}
+          />
+        </div>
+      )}
+
+      {/* Coming Soon full screen overlay */}
+      {comingSoonScreen && (
+        <div style={{ position:'absolute', inset:0, zIndex:200, display:'flex', flexDirection:'column', background:'#F8FAFC' }}>
+          <div style={{ flexShrink:0, display:'flex', alignItems:'center', gap:'12px', background:'#fff', borderBottom:'1px solid #E2E8F0', padding:'52px 16px 14px' }}>
+            <button onClick={() => setComingSoonScreen(false)} style={{ width:'38px', height:'38px', borderRadius:'12px', background:'#F8FAFC', border:'1px solid #E2E8F0', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+              <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth={2.5}><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <h3 style={{ fontSize:'15px', fontWeight:700, color:'#0F172A', margin:0 }}>Coming Soon</h3>
+          </div>
+          <div style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'32px 24px', textAlign:'center' }}>
+            <div style={{ width:'80px', height:'80px', borderRadius:'24px', background:'linear-gradient(135deg,#0F172A,#134E4A)', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:'24px' }}>
+              <svg width={36} height={36} viewBox="0 0 24 24" fill="none" stroke="#5EEAD4" strokeWidth={1.5}><circle cx={12} cy={12} r={10}/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <h2 style={{ fontSize:'20px', fontWeight:800, color:'#0F172A', margin:'0 0 8px' }}>Coming Soon!</h2>
+            <p style={{ fontSize:'13px', color:'#94A3B8', lineHeight:1.7, marginBottom:'24px' }}>
+              We are working hard to bring this feature to you. Stay tuned for updates!
+            </p>
+            <div style={{ width:'100%', borderRadius:'18px', padding:'16px', marginBottom:'24px', background:'#F0FDFA', border:'1px solid #0D9488' }}>
+              <div style={{ fontSize:'12px', fontWeight:700, color:'#0D9488', marginBottom:'4px' }}>Be the first to know</div>
+              <div style={{ fontSize:'12px', color:'#0F766E' }}>We'll notify you as soon as this feature launches.</div>
+            </div>
+            <button onClick={() => setComingSoonScreen(false)}
+              style={{ width:'100%', padding:'16px', borderRadius:'14px', fontWeight:700, color:'#fff', fontSize:'14px', border:'none', cursor:'pointer', background:'#0D9488', fontFamily:'DM Sans, sans-serif' }}>
+              Back to Home
+            </button>
+          </div>
+        </div>
+      )}
 
       <BottomNav active="Home" />
       <PopupLayer />
