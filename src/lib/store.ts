@@ -14,8 +14,8 @@ interface AppState {
   profile:  AssistantProfile | null
 
   // Status
-  isOnline:      boolean
-  activeBooking: BookingRequest | null
+  isOnline:        boolean
+  activeBooking:   BookingRequest | null
   incomingBooking: BookingRequest | null
 
   // Emergency
@@ -45,7 +45,7 @@ export const useStore = create<AppState>()(
       token:             null,
       phone:             '',
       profile:           null,
-      isOnline:          false,
+      isOnline:          true,   // ✅ DEFAULT = ONLINE (was false)
       activeBooking:     null,
       incomingBooking:   null,
       emergencyContacts: [],
@@ -67,6 +67,7 @@ export const useStore = create<AppState>()(
       showPopup:            (cfg) => set({ popup: cfg }),
       closePopup:           () => set({ popup: null }),
       setSOS:               (v) => set({ sosActive: v }),
+
       logout: () => {
         if (typeof window !== 'undefined') {
           localStorage.removeItem('cb_assistant_token')
@@ -74,7 +75,7 @@ export const useStore = create<AppState>()(
         set({
           token:          null,
           profile:        null,
-          isOnline:       false,
+          isOnline:       true,  // ✅ RESET TO ONLINE on logout (not offline)
           activeBooking:  null,
           popup:          null,
         })
@@ -86,6 +87,8 @@ export const useStore = create<AppState>()(
         token:             s.token,
         phone:             s.phone,
         emergencyContacts: s.emergencyContacts,
+        isOnline:          s.isOnline,   // ✅ NOW PERSISTED (was missing)
+        profile:           s.profile,   // ✅ NOW PERSISTED (was missing)
       }),
     }
   )

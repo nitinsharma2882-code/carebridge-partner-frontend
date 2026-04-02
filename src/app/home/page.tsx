@@ -62,24 +62,21 @@ const TESTIMONIALS = [
 ]
 
 export default function HomePage() {
-  const [isOnline,          setIsOnline]          = useState(false)
-  const [onlineTime,        setOnlineTime]        = useState('Go online to earn')
-  const [userName,          setUserName]          = useState('there')
-  const [upcomingCount,     setUpcomingCount]     = useState(0)
-  const [adScreen,          setAdScreen]          = useState(false)
-  const [adData,            setAdData]            = useState<{ title:string; badge:string; sub:string } | null>(null)
-  const [comingSoonScreen,  setComingSoonScreen]  = useState(false)
-
   const router = useRouter()
-  const { showPopup, closePopup } = useStore()
+
+  // ── Global store — isOnline persisted via Zustand ─────
+  const { isOnline, setOnline, showPopup, closePopup } = useStore()
+
+  const [userName,         setUserName]         = useState('there')
+  const [upcomingCount,    setUpcomingCount]    = useState(0)
+  const [adScreen,         setAdScreen]         = useState(false)
+  const [adData,           setAdData]           = useState<{ title:string; badge:string; sub:string } | null>(null)
+  const [comingSoonScreen, setComingSoonScreen] = useState(false)
+
+  // Derived display label
+  const onlineTime = isOnline ? 'Online · Ready for duty' : 'Go online to earn'
 
   useEffect(() => {
-    // Restore online state
-    try {
-      const savedOnline = localStorage.getItem('carebridge_partner_online')
-      if (savedOnline === 'true') { setIsOnline(true); setOnlineTime('Online') }
-    } catch {}
-
     // Username
     try {
       const saved = localStorage.getItem('carebridge_user')
@@ -117,18 +114,49 @@ export default function HomePage() {
     }
   }, [])
 
-  const toggleOnline = () => {
-    const next = !isOnline
-    setIsOnline(next)
-    setOnlineTime(next ? 'Online' : 'Go online to earn')
-    localStorage.setItem('carebridge_partner_online', String(next))
-    showPopup({
-      type: next ? 'success' : 'info',
-      title: next ? 'You are Online 🟢' : 'You are Offline ⚫',
-      body: next ? 'You are now visible to customers.\nRequests will appear here.' : "You won't receive any requests while offline.",
-      icon: next ? '🟢' : '⚫',
-      actions: [{ label:'OK', variant:'primary', fn:closePopup }],
-    })
+  // ── Toggle handler with confirmation before going offline ──
+  const handleToggle = () => {
+    if (isOnline) {
+      // Confirm before going OFFLINE
+      showPopup({
+        type:'confirm',
+        title:'Go Offline?',
+        icon:'⚫',
+        body:'Are you sure you want to go offline and stop accepting duties?',
+        actions:[
+          {
+            label:'Yes, Go Offline',
+            variant:'danger',
+            fn:() => {
+              setOnline(false)
+              closePopup()
+              showPopup({
+                type:'info',
+                title:'You are Offline ⚫',
+                icon:'⚫',
+                body:"You won't receive any requests while offline.",
+                actions:[{ label:'OK', variant:'primary', fn:closePopup }],
+              })
+            },
+          },
+          {
+            label:'Stay Online',
+            variant:'primary',
+            fn:closePopup,
+          },
+        ],
+      })
+    } else {
+      // Go ONLINE immediately — no confirmation needed
+      setOnline(true)
+      showPopup({
+        type:'success',
+        title:'You are Online 🟢',
+        icon:'🟢',
+        body:'You are now visible to customers.\nRequests will appear here.',
+        actions:[{ label:'OK', variant:'primary', fn:closePopup }],
+      })
+    }
   }
 
   const handleAdClick = (ad: { title:string; badge:string; sub:string }) => {
@@ -207,7 +235,7 @@ export default function HomePage() {
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
           </div>
 
-          {/* Quick Actions — 2 cards only */}
+          {/* Quick Actions */}
           <div style={{ padding:'12px 14px 0' }}>
             <div style={{ fontSize:'11px', fontWeight:700, color:'#64748B', textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:'10px' }}>Quick Actions</div>
             <div style={{ display:'flex', gap:'10px' }}>
@@ -216,13 +244,13 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Online Toggle */}
+          {/* ── Online Toggle — powered by global Zustand store ── */}
           <div style={{ background:'#fff', padding:'12px 14px 10px', borderTop:'1px solid #E2E8F0', borderBottom:'1px solid #E2E8F0', marginTop:'12px' }}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'10px' }}>
               <span style={{ fontSize:'11px', fontWeight:700, color:'#64748B', textTransform:'uppercase', letterSpacing:'0.5px' }}>Your Status</span>
-              <span style={{ fontSize:'12px', color:'#94A3B8' }}>{onlineTime}</span>
+              <span style={{ fontSize:'12px', color: isOnline ? '#16A34A' : '#94A3B8', fontWeight: isOnline ? 700 : 400 }}>{onlineTime}</span>
             </div>
-            <div onClick={toggleOnline} style={{ width:'100%', height:'52px', borderRadius:'100px', background:isOnline?'#EDFAF7':'#F1F5F9', border:`1.5px solid ${isOnline?'#CCFBF1':'#E2E8F0'}`, display:'flex', padding:'4px', cursor:'pointer', position:'relative', transition:'all 0.3s ease' }}>
+            <div onClick={handleToggle} style={{ width:'100%', height:'52px', borderRadius:'100px', background:isOnline?'#EDFAF7':'#F1F5F9', border:`1.5px solid ${isOnline?'#CCFBF1':'#E2E8F0'}`, display:'flex', padding:'4px', cursor:'pointer', position:'relative', transition:'all 0.3s ease' }}>
               <div style={{ position:'absolute', top:'4px', bottom:'4px', width:'calc(50% - 4px)', borderRadius:'100px', background:isOnline?'#0D9488':'#fff', boxShadow:isOnline?'0 2px 14px rgba(13,148,136,0.4)':'0 2px 8px rgba(0,0,0,0.12)', left:isOnline?'4px':'calc(50%)', transition:'all 0.3s cubic-bezier(0.34,1.3,0.64,1)' }} />
               <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'13px', fontWeight:700, zIndex:1, color:isOnline?'#fff':'#94A3B8' }}>Online</div>
               <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'13px', fontWeight:700, zIndex:1, color:isOnline?'#94A3B8':'#475569' }}>Offline</div>
@@ -233,7 +261,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* New Request — only when online, between toggle and map */}
+          {/* New Request — only when online */}
           {isOnline && (
             <div onClick={() => router.push('/bookings')}
               style={{ margin:'10px 14px 0', borderRadius:'18px', background:'#fff', border:'2px solid #0D9488', padding:'14px 16px', display:'flex', alignItems:'center', justifyContent:'space-between', cursor:'pointer', animation:'fadeIn 0.4s ease' }}>
@@ -292,10 +320,10 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Sponsored & Promoted — Consumer App style */}
+          {/* Sponsored & Promoted */}
           <SponsoredSection onAdClick={handleAdClick} />
 
-          {/* Coming Soon — Consumer App style */}
+          {/* Coming Soon */}
           <ComingSoonSection onItemClick={() => setComingSoonScreen(true)} />
 
           {/* Testimonials */}
@@ -326,18 +354,14 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Ad Detail full screen overlay */}
+      {/* Ad Detail overlay */}
       {adScreen && (
         <div style={{ position:'absolute', inset:0, zIndex:200 }}>
-          <AdDetailScreen
-            ad={adData}
-            onBack={() => setAdScreen(false)}
-            onConfirm={handleAdConfirm}
-          />
+          <AdDetailScreen ad={adData} onBack={() => setAdScreen(false)} onConfirm={handleAdConfirm} />
         </div>
       )}
 
-      {/* Coming Soon full screen overlay */}
+      {/* Coming Soon overlay */}
       {comingSoonScreen && (
         <div style={{ position:'absolute', inset:0, zIndex:200, display:'flex', flexDirection:'column', background:'#F8FAFC' }}>
           <div style={{ flexShrink:0, display:'flex', alignItems:'center', gap:'12px', background:'#fff', borderBottom:'1px solid #E2E8F0', padding:'52px 16px 14px' }}>
@@ -377,3 +401,16 @@ export default function HomePage() {
     </MobileFrame>
   )
 }
+```
+
+---
+
+## 6. File Placement
+```
+carebridge-partner/
+└── src/
+    ├── lib/
+    │   └── store.ts        ← REPLACE entirely
+    └── app/
+        └── home/
+            └── page.tsx    ← REPLACE entirely
