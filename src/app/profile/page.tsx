@@ -353,7 +353,6 @@ export default function ProfilePage() {
           </div>
           <div style={{ background:'#fff', borderRadius:'16px', margin:'0 14px', overflow:'hidden', border:'1px solid #E2E8F0' }}>
             <MenuItem icon="👤" label="Personal Details" sub="Name, email, blood group"  onClick={()=>setView('personal')} />
-            <MenuItem icon="📄" label="My Documents"     sub="Certificates & ID proofs"  onClick={()=>router.push('/documents')} />
           </div>
 
           {/* Skills */}

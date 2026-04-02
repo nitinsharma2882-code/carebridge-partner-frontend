@@ -191,13 +191,7 @@ export default function AccessibilityPage() {
         {/* Scrollable content */}
         <div style={{ flex:1, overflowY:'auto', padding:'0 14px 32px', background:settings.highContrast?'#000':'#F8FAFC' }}>
 
-          {/* Live Preview */}
-          <div style={{ margin:'14px 0', background:settings.highContrast?'#111':'#fff', borderRadius:'18px', padding:'16px', border:`1px solid ${settings.highContrast?'#333':'#E2E8F0'}` }}>
-            <div style={{ fontSize:'11px', fontWeight:700, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.6px', marginBottom:'10px' }}>Live Preview</div>
-            <div style={{ background:settings.highContrast?'#000':'#F8FAFC', borderRadius:'14px', padding:'14px 16px', border:`1px solid ${settings.highContrast?'#555':'#E2E8F0'}` }}>
-              <div style={{ fontSize:previewSize, fontWeight:settings.boldText?800:500, color:settings.highContrast?'#fff':'#0F172A', marginBottom:'4px' }}>
-                CareBridge Partner
-              </div>
+        
               <div style={{ fontSize:`calc(${previewSize} - 2px)`, fontWeight:settings.boldText?700:400, color:settings.highContrast?'#ccc':'#64748B', lineHeight:1.5, marginBottom:'12px' }}>
                 Adjust settings to see how the app will look for you.
               </div>
@@ -259,12 +253,7 @@ export default function AccessibilityPage() {
             <Row icon="📳" label="Haptic Feedback" sublabel="Vibrate on button taps"               toggled={settings.hapticFeedback} onToggle={()=>toggle('hapticFeedback')} last />
           </div>
 
-          {/* Booking Actions — replaces Screen Reader, has working buttons */}
-          <SectionHeader label="Booking Actions" />
-          <div style={{ background:'#fff', borderRadius:'18px', padding:'16px', border:'1px solid #E2E8F0' }}>
-            <div style={{ fontSize:'13px', color:'#64748B', lineHeight:1.6, marginBottom:'14px' }}>
-              These buttons appear when a new booking request arrives. Tap to test them.
-            </div>
+        
             <div style={{ display:'flex', gap:'10px' }}>
               <button
                 onClick={() => showPopup({

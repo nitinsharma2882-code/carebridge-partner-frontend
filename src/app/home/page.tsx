@@ -61,19 +61,29 @@ const TESTIMONIALS = [
   { name:'Amit S',   stars:4, quote:'Great platform for healthcare workers. Payments are always on time.',        initials:'AS', bg:'#FFF7ED', color:'#D97706' },
 ]
 
+// ── Simulated incoming request shape ─────────────────────
+interface IncomingRequest {
+  id:       string
+  distance: string
+  service:  string
+  fare:     number
+}
+
 export default function HomePage() {
   const router = useRouter()
-
-  // ── Global store — isOnline persisted via Zustand ─────
   const { isOnline, setOnline, showPopup, closePopup } = useStore()
 
   const [userName,         setUserName]         = useState('there')
   const [upcomingCount,    setUpcomingCount]    = useState(0)
   const [adScreen,         setAdScreen]         = useState(false)
-  const [adData,           setAdData]           = useState<{ title:string; badge:string; sub:string } | null>(null)
+  const [adData,           setAdData]           = useState<{ title:string; badge:string; sub:string }|null>(null)
   const [comingSoonScreen, setComingSoonScreen] = useState(false)
 
-  // Derived display label
+  // ── Task 2: incomingRequest is null by default ────────
+  // It only gets set when a REAL request arrives (API/websocket)
+  // Set to null on page load — never shows on reload
+  const [incomingRequest, setIncomingRequest] = useState<IncomingRequest|null>(null)
+
   const onlineTime = isOnline ? 'Online · Ready for duty' : 'Go online to earn'
 
   useEffect(() => {
@@ -112,56 +122,67 @@ export default function HomePage() {
         }
       }).catch(()=>{})
     }
-  }, [])
 
-  // ── Toggle handler with confirmation before going offline ──
+    // ── Task 2: Poll for real incoming requests ───────────
+    // Only set incomingRequest when API returns a pending request
+    // Replace this with a WebSocket listener in production
+    const pollRequests = () => {
+      fetch('/api/assistants/requests')
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          if (data?.success && data.requests?.length > 0) {
+            const first = data.requests[0]
+            setIncomingRequest({
+              id:       first.id,
+              distance: first.distance || '2.4 km',
+              service:  first.services?.[0] || 'Elder Care',
+              fare:     first.fare || 320,
+            })
+          } else {
+            // No requests — clear the card
+            setIncomingRequest(null)
+          }
+        })
+        .catch(() => {
+          // API not available — do NOT show fake request
+          setIncomingRequest(null)
+        })
+    }
+
+    // Poll only when online — every 15 seconds
+    let interval: NodeJS.Timeout | null = null
+    if (isOnline) {
+      pollRequests()
+      interval = setInterval(pollRequests, 15000)
+    }
+
+    return () => { if (interval) clearInterval(interval) }
+  }, [isOnline]) // Re-run when online status changes
+
   const handleToggle = () => {
     if (isOnline) {
-      // Confirm before going OFFLINE
       showPopup({
-        type:'confirm',
-        title:'Go Offline?',
-        icon:'⚫',
+        type:'confirm', title:'Go Offline?', icon:'⚫',
         body:'Are you sure you want to go offline and stop accepting duties?',
         actions:[
-          {
-            label:'Yes, Go Offline',
-            variant:'danger',
-            fn:() => {
-              setOnline(false)
-              closePopup()
-              showPopup({
-                type:'info',
-                title:'You are Offline ⚫',
-                icon:'⚫',
-                body:"You won't receive any requests while offline.",
-                actions:[{ label:'OK', variant:'primary', fn:closePopup }],
-              })
-            },
-          },
-          {
-            label:'Stay Online',
-            variant:'primary',
-            fn:closePopup,
-          },
+          { label:'Yes, Go Offline', variant:'danger', fn:() => {
+            setOnline(false)
+            setIncomingRequest(null) // Clear any pending request when going offline
+            closePopup()
+            showPopup({ type:'info', title:'You are Offline ⚫', icon:'⚫', body:"You won't receive any requests while offline.", actions:[{ label:'OK', variant:'primary', fn:closePopup }] })
+          }},
+          { label:'Stay Online', variant:'primary', fn:closePopup },
         ],
       })
     } else {
-      // Go ONLINE immediately — no confirmation needed
       setOnline(true)
-      showPopup({
-        type:'success',
-        title:'You are Online 🟢',
-        icon:'🟢',
-        body:'You are now visible to customers.\nRequests will appear here.',
-        actions:[{ label:'OK', variant:'primary', fn:closePopup }],
-      })
+      setIncomingRequest(null) // Always start fresh — no stale requests
+      showPopup({ type:'success', title:'You are Online 🟢', icon:'🟢', body:'You are now visible to customers.\nRequests will appear here.', actions:[{ label:'OK', variant:'primary', fn:closePopup }] })
     }
   }
 
   const handleAdClick = (ad: { title:string; badge:string; sub:string }) => {
-    setAdData(ad)
-    setAdScreen(true)
+    setAdData(ad); setAdScreen(true)
   }
 
   const handleAdConfirm = () => {
@@ -244,11 +265,11 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* ── Online Toggle — powered by global Zustand store ── */}
+          {/* Online Toggle */}
           <div style={{ background:'#fff', padding:'12px 14px 10px', borderTop:'1px solid #E2E8F0', borderBottom:'1px solid #E2E8F0', marginTop:'12px' }}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'10px' }}>
               <span style={{ fontSize:'11px', fontWeight:700, color:'#64748B', textTransform:'uppercase', letterSpacing:'0.5px' }}>Your Status</span>
-              <span style={{ fontSize:'12px', color: isOnline ? '#16A34A' : '#94A3B8', fontWeight: isOnline ? 700 : 400 }}>{onlineTime}</span>
+              <span style={{ fontSize:'12px', color:isOnline?'#16A34A':'#94A3B8', fontWeight:isOnline?700:400 }}>{onlineTime}</span>
             </div>
             <div onClick={handleToggle} style={{ width:'100%', height:'52px', borderRadius:'100px', background:isOnline?'#EDFAF7':'#F1F5F9', border:`1.5px solid ${isOnline?'#CCFBF1':'#E2E8F0'}`, display:'flex', padding:'4px', cursor:'pointer', position:'relative', transition:'all 0.3s ease' }}>
               <div style={{ position:'absolute', top:'4px', bottom:'4px', width:'calc(50% - 4px)', borderRadius:'100px', background:isOnline?'#0D9488':'#fff', boxShadow:isOnline?'0 2px 14px rgba(13,148,136,0.4)':'0 2px 8px rgba(0,0,0,0.12)', left:isOnline?'4px':'calc(50%)', transition:'all 0.3s cubic-bezier(0.34,1.3,0.64,1)' }} />
@@ -261,8 +282,8 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* New Request — only when online */}
-          {isOnline && (
+          {/* ── Task 2: New Request — ONLY when isOnline AND incomingRequest is not null ── */}
+          {isOnline && incomingRequest && (
             <div onClick={() => router.push('/bookings')}
               style={{ margin:'10px 14px 0', borderRadius:'18px', background:'#fff', border:'2px solid #0D9488', padding:'14px 16px', display:'flex', alignItems:'center', justifyContent:'space-between', cursor:'pointer', animation:'fadeIn 0.4s ease' }}>
               <div style={{ display:'flex', alignItems:'center', gap:'12px' }}>
@@ -271,7 +292,9 @@ export default function HomePage() {
                 </div>
                 <div>
                   <div style={{ fontSize:'14px', fontWeight:700, color:'#0F172A' }}>New Request Nearby!</div>
-                  <div style={{ fontSize:'12px', color:'#64748B', marginTop:'2px' }}>2.4 km · Elder Care · ₹320</div>
+                  <div style={{ fontSize:'12px', color:'#64748B', marginTop:'2px' }}>
+                    {incomingRequest.distance} · {incomingRequest.service} · ₹{incomingRequest.fare}
+                  </div>
                 </div>
               </div>
               <div style={{ width:'36px', height:'36px', borderRadius:'50%', background:'#0D9488', display:'flex', alignItems:'center', justifyContent:'center' }}>
@@ -337,7 +360,7 @@ export default function HomePage() {
                 <div key={i} style={{ minWidth:'220px', background:'#fff', borderRadius:'18px', padding:'16px', border:'1px solid #E2E8F0', flexShrink:0 }}>
                   <div style={{ display:'flex', gap:'2px', marginBottom:'10px' }}>
                     {Array.from({ length:5 }).map((_,s) => (
-                      <span key={s} style={{ fontSize:'13px', color: s < t.stars ? '#F59E0B' : '#E2E8F0' }}>★</span>
+                      <span key={s} style={{ fontSize:'13px', color:s < t.stars?'#F59E0B':'#E2E8F0' }}>★</span>
                     ))}
                   </div>
                   <div style={{ fontSize:'12px', color:'#475569', lineHeight:1.65, marginBottom:'12px' }}>"{t.quote}"</div>
