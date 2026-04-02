@@ -101,12 +101,11 @@ export default function SettingsPage() {
 
           <SectionHeader label="Account" />
           <div style={{ margin:'0 14px', background:'#fff', borderRadius:'18px', overflow:'hidden', border:'1px solid #E2E8F0' }}>
-            <Row icon="👤" label="Profile Details"    sublabel="Name, photo, contact info"  onPress={()=>router.push('/profile')} />
-            <Row icon="📍" label="Manage Address"     sublabel="Home, work, saved places"   onPress={()=>router.push('/settings/address')} />
-            <Row icon="🆘" label="Emergency Contacts" sublabel="Your SOS contacts"          onPress={()=>router.push('/emergency')} />
-            <Row icon="📋" label="My Bookings"        sublabel="Past & upcoming bookings"   onPress={()=>router.push('/bookings')} />
-            <Row icon="📁" label="My Documents"       sublabel="Stored health documents"    onPress={()=>router.push('/documents')} last />
-          </div>
+  <Row icon="📍" label="Manage Address"     sublabel="Home, work, saved places"   onPress={()=>router.push('/settings/address')} />
+  <Row icon="🆘" label="Emergency Contacts" sublabel="Your SOS contacts"          onPress={()=>router.push('/emergency')} />
+  <Row icon="📋" label="My Bookings"        sublabel="Past & upcoming bookings"   onPress={()=>router.push('/bookings')} />
+  <Row icon="📁" label="My Documents"       sublabel="Stored health documents"    onPress={()=>router.push('/documents')} last />
+</div>
 
           <SectionHeader label="Notifications" />
           <div style={{ margin:'0 14px', background:'#fff', borderRadius:'18px', overflow:'hidden', border:'1px solid #E2E8F0' }}>
