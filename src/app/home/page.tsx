@@ -401,16 +401,3 @@ export default function HomePage() {
     </MobileFrame>
   )
 }
-```
-
----
-
-## 6. File Placement
-```
-carebridge-partner/
-└── src/
-    ├── lib/
-    │   └── store.ts        ← REPLACE entirely
-    └── app/
-        └── home/
-            └── page.tsx    ← REPLACE entirely
