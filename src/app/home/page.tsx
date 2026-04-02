@@ -36,6 +36,7 @@ function PopupLayer() {
   )
 }
 
+// ── Issue 6: Only 2 QuickCards — Go Online removed ────────
 function QuickCard({ emoji, bg, label, sub, onClick }: { emoji:string; bg:string; label:string; sub:string; onClick:()=>void }) {
   return (
     <div onClick={onClick} style={{ flex:1, background:'#fff', border:'1px solid #E2E8F0', borderRadius:'16px', padding:'14px', cursor:'pointer', display:'flex', flexDirection:'column', gap:'8px' }}>
@@ -58,6 +59,13 @@ const BULLETIN_ITEMS = [
   '🧒 Child Helpline: 1098', '⚡ Disaster: 1070',
 ]
 
+// ── Issue 5: Testimonials data ────────────────────────────
+const TESTIMONIALS = [
+  { name:'Rajan K',  stars:5, quote:'CareBridge helped me earn ₹18,000 last month working just 5 hours a day!', initials:'RK', bg:'#EDFAF7', color:'#0D9488' },
+  { name:'Sunita M', stars:5, quote:'The app is very easy to use and bookings come regularly in my area.',        initials:'SM', bg:'#EFF6FF', color:'#2563EB' },
+  { name:'Amit S',   stars:4, quote:'Great platform for healthcare workers. Payments are always on time.',        initials:'AS', bg:'#FFF7ED', color:'#D97706' },
+]
+
 export default function HomePage() {
   const [isOnline,      setIsOnline]      = useState(false)
   const [onlineTime,    setOnlineTime]    = useState('Go online to earn')
@@ -67,6 +75,15 @@ export default function HomePage() {
   const { showPopup, closePopup } = useStore()
 
   useEffect(() => {
+    // ── Issue 3: Restore online state from localStorage ──
+    try {
+      const savedOnline = localStorage.getItem('carebridge_partner_online')
+      if (savedOnline === 'true') {
+        setIsOnline(true)
+        setOnlineTime('Online')
+      }
+    } catch {}
+
     // Username from localStorage then API
     try {
       const saved = localStorage.getItem('carebridge_user')
@@ -87,7 +104,7 @@ export default function HomePage() {
       }
     }).catch(()=>{})
 
-    // ── Issue 17: Location permission check ──────────────
+    // Location permission check
     if (navigator?.permissions) {
       navigator.permissions.query({ name:'geolocation' }).then(result => {
         if (result.state === 'denied') {
@@ -104,10 +121,12 @@ export default function HomePage() {
     }
   }, [])
 
+  // ── Issue 3: Persist online state to localStorage ─────
   const toggleOnline = () => {
     const next = !isOnline
     setIsOnline(next)
-    setOnlineTime(next ? 'Online for 0h 0m' : 'Go online to earn')
+    setOnlineTime(next ? 'Online' : 'Go online to earn')
+    localStorage.setItem('carebridge_partner_online', String(next))
     showPopup({
       type: next ? 'success' : 'info',
       title: next ? 'You are Online 🟢' : 'You are Offline ⚫',
@@ -179,17 +198,16 @@ export default function HomePage() {
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
           </div>
 
-          {/* Quick Actions */}
+          {/* ── Issue 6: Quick Actions — Go Online card REMOVED ── */}
           <div style={{ padding:'12px 14px 0' }}>
             <div style={{ fontSize:'11px', fontWeight:700, color:'#64748B', textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:'10px' }}>Quick Actions</div>
             <div style={{ display:'flex', gap:'10px' }}>
-              <QuickCard emoji="📋" bg="#EDFAF7" label="Active Bookings" sub="View requests"    onClick={() => router.push('/bookings')} />
-              <QuickCard emoji="💰" bg="#FEF3C7" label="Today's Earnings" sub="Check payouts"   onClick={() => router.push('/earnings')} />
-              <QuickCard emoji="🟢" bg="#F0FDF4" label="Go Online"        sub="Start accepting" onClick={toggleOnline} />
+              <QuickCard emoji="📋" bg="#EDFAF7" label="Active Bookings" sub="View requests"  onClick={() => router.push('/bookings')} />
+              <QuickCard emoji="💰" bg="#FEF3C7" label="Today's Earnings" sub="Check payouts" onClick={() => router.push('/earnings')} />
             </div>
           </div>
 
-          {/* Horizontal Ads */}
+          {/* ── Issue 8: Sponsored & Promoted ── */}
           <div style={{ padding:'12px 0 0' }}>
             <div style={{ padding:'0 14px 8px' }}>
               <span style={{ fontSize:'11px', fontWeight:700, color:'#64748B', textTransform:'uppercase', letterSpacing:'0.5px' }}>Sponsored & Promoted</span>
@@ -228,6 +246,25 @@ export default function HomePage() {
               <span style={{ fontSize:'13px', color:'#64748B' }}>{isOnline?'Looking for requests nearby…':'Toggle to start accepting bookings'}</span>
             </div>
           </div>
+
+          {/* ── Issue 1: New Request card moved here — only when online ── */}
+          {isOnline && (
+            <div onClick={() => router.push('/bookings')}
+              style={{ margin:'10px 14px 0', borderRadius:'18px', background:'#fff', border:'2px solid #0D9488', padding:'14px 16px', display:'flex', alignItems:'center', justifyContent:'space-between', cursor:'pointer', animation:'fadeIn 0.4s ease' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:'12px' }}>
+                <div style={{ width:'42px', height:'42px', borderRadius:'13px', background:'#EDFAF7', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0D9488" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </div>
+                <div>
+                  <div style={{ fontSize:'14px', fontWeight:700, color:'#0F172A' }}>New Request Nearby!</div>
+                  <div style={{ fontSize:'12px', color:'#64748B', marginTop:'2px' }}>2.4 km · Elder Care · ₹320</div>
+                </div>
+              </div>
+              <div style={{ width:'36px', height:'36px', borderRadius:'50%', background:'#0D9488', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+              </div>
+            </div>
+          )}
 
           {/* Nearby Requests map */}
           <div style={{ margin:'12px 14px', borderRadius:'18px', overflow:'hidden', background:'#fff', border:'1px solid #E2E8F0' }}>
@@ -269,7 +306,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* ── Issue 12: Coming Soon Banner (replaces Medical Documents) ── */}
+          {/* ── Issue 7: Coming Soon Banner ── */}
           <div style={{ margin:'12px 14px 0', borderRadius:'18px', background:'linear-gradient(135deg,#0F172A,#134E4A)', border:'1px solid #1E293B', padding:'20px 16px', display:'flex', flexDirection:'column', alignItems:'center', gap:'10px' }}>
             <div style={{ fontSize:'28px' }}>🚀</div>
             <div style={{ fontSize:'15px', fontWeight:800, color:'#fff', textAlign:'center' }}>More Features Coming Soon</div>
@@ -281,25 +318,34 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* New request banner (when online) */}
-          {isOnline && (
-            <div onClick={() => router.push('/bookings')}
-              style={{ margin:'12px 14px', borderRadius:'18px', background:'#fff', border:'2px solid #0D9488', padding:'14px 16px', display:'flex', alignItems:'center', justifyContent:'space-between', cursor:'pointer', animation:'fadeIn 0.4s ease' }}>
-              <div style={{ display:'flex', alignItems:'center', gap:'12px' }}>
-                <div style={{ width:'42px', height:'42px', borderRadius:'13px', background:'#EDFAF7', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0D9488" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                </div>
-                <div>
-                  <div style={{ fontSize:'14px', fontWeight:700, color:'#0F172A' }}>New Request Nearby!</div>
-                  <div style={{ fontSize:'12px', color:'#64748B', marginTop:'2px' }}>2.4 km · Elder Care · ₹320</div>
-                </div>
-              </div>
-              <div style={{ width:'36px', height:'36px', borderRadius:'50%', background:'#0D9488', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
-              </div>
+          {/* ── Issue 5: Testimonials ── */}
+          <div style={{ padding:'16px 0 0' }}>
+            <div style={{ padding:'0 14px 10px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+              <span style={{ fontSize:'11px', fontWeight:700, color:'#64748B', textTransform:'uppercase', letterSpacing:'0.5px' }}>What Partners Say</span>
+              <span style={{ fontSize:'11px', fontWeight:600, color:'#0D9488' }}>⭐ Verified reviews</span>
             </div>
-          )}
+            <div style={{ display:'flex', gap:'10px', overflowX:'auto', padding:'0 14px 4px', scrollbarWidth:'none' }}>
+              {TESTIMONIALS.map((t, i) => (
+                <div key={i} style={{ minWidth:'220px', background:'#fff', borderRadius:'18px', padding:'16px', border:'1px solid #E2E8F0', flexShrink:0 }}>
+                  {/* Stars */}
+                  <div style={{ display:'flex', gap:'2px', marginBottom:'10px' }}>
+                    {Array.from({ length:5 }).map((_,s) => (
+                      <span key={s} style={{ fontSize:'13px', color: s < t.stars ? '#F59E0B' : '#E2E8F0' }}>★</span>
+                    ))}
+                  </div>
+                  {/* Quote */}
+                  <div style={{ fontSize:'12px', color:'#475569', lineHeight:1.65, marginBottom:'12px' }}>"{t.quote}"</div>
+                  {/* Avatar + Name */}
+                  <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
+                    <div style={{ width:'32px', height:'32px', borderRadius:'50%', background:t.bg, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'11px', fontWeight:800, color:t.color, flexShrink:0 }}>{t.initials}</div>
+                    <div style={{ fontSize:'12px', fontWeight:700, color:'#0F172A' }}>{t.name}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
 
+          <div style={{ height:'16px' }} />
         </div>
       </div>
 
