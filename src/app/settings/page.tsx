@@ -66,15 +66,13 @@ export default function SettingsPage() {
   const [darkMode,       setDarkMode]       = useState(false)
   const [soundAlerts,    setSoundAlerts]    = useState(true)
   const [vibration,      setVibration]      = useState(true)
-  const [biometric,      setBiometric]      = useState(false)
 
-  // ── Issue 18: Load saved dark mode preference on mount ──
+  // Load persisted dark mode
   useEffect(() => {
-    const saved = localStorage.getItem('carebridge_dark_mode')
-    if (saved === 'true') {
-      setDarkMode(true)
-      applyDarkMode(true)
-    }
+    try {
+      const saved = localStorage.getItem('carebridge_dark_mode')
+      if (saved === 'true') { setDarkMode(true); applyDarkMode(true) }
+    } catch {}
   }, [])
 
   const applyDarkMode = (on: boolean) => {
@@ -82,13 +80,32 @@ export default function SettingsPage() {
     document.documentElement.style.setProperty('--card',   on ? '#1E293B' : '#ffffff')
     document.documentElement.style.setProperty('--text',   on ? '#F1F5F9' : '#0F172A')
     document.documentElement.style.setProperty('--border', on ? '#334155' : '#E2E8F0')
+    // Also apply to body for full app coverage
+    document.body.style.background = on ? '#0F172A' : ''
+    document.body.style.color = on ? '#F1F5F9' : ''
   }
 
   const toggleDarkMode = () => {
     const next = !darkMode
     setDarkMode(next)
-    localStorage.setItem('carebridge_dark_mode', String(next))
+    try { localStorage.setItem('carebridge_dark_mode', String(next)) } catch {}
     applyDarkMode(next)
+  }
+
+  // Location toggle with confirmation popup when turning OFF
+  const handleLocationToggle = () => {
+    if (locationAlways) {
+      showPopup({
+        type:'warning', title:'Disable Location?', icon:'📍',
+        body:'Disabling location may affect service availability.\nYou may not receive nearby booking requests.\n\nContinue?',
+        actions:[
+          { label:'Disable', variant:'danger',    fn:() => { setLocationAlways(false); closePopup() } },
+          { label:'Keep On', variant:'primary',   fn:closePopup },
+        ],
+      })
+    } else {
+      setLocationAlways(true)
+    }
   }
 
   const confirm    = (title:string,body:string,icon:string,onConfirm:()=>void) => showPopup({ type:'confirm',title,body,icon, actions:[{ label:'Confirm',variant:'danger',fn:()=>{ closePopup(); onConfirm() } },{ label:'Cancel',variant:'secondary',fn:closePopup }] })
@@ -97,6 +114,11 @@ export default function SettingsPage() {
 
   const handleLogout        = () => confirm('Log Out?','You will be signed out of your account.','🚪',()=>{ logout(); router.replace('/login') })
   const handleDeleteAccount = () => confirm('Delete Account?','This will permanently delete your account and all data. This cannot be undone.','⚠️',()=>{ showPopup({ type:'success',title:'Request Submitted',body:'Account deletion request sent.\nOur team will process it within 7 days.',icon:'📧', actions:[{ label:'OK',variant:'primary',fn:()=>{ closePopup(); router.replace('/login') } }] }) })
+
+  // Get saved language label
+  const savedLang = typeof window !== 'undefined' ? localStorage.getItem('cb_assistant_language') : 'en'
+  const LANG_NAMES: Record<string,string> = { en:'English', hi:'Hindi', bn:'Bengali', te:'Telugu', mr:'Marathi', ta:'Tamil', gu:'Gujarati', kn:'Kannada', ml:'Malayalam', pa:'Punjabi', or:'Odia', ur:'Urdu' }
+  const langLabel = LANG_NAMES[savedLang||'en'] || 'English'
 
   return (
     <MobileFrame>
@@ -146,29 +168,21 @@ export default function SettingsPage() {
             <Row icon="📣" label="Promotions"       sublabel="Offers & announcements"  toggle toggled={notifPromo}   onToggle={()=>setNotifPromo(v=>!v)} last />
           </div>
 
-          {/* App Preferences — Issue 10: Auto-Accept REMOVED */}
+          {/* App Preferences — Biometric + Change PIN REMOVED, Location has popup */}
           <SectionHeader label="App Preferences" />
           <div style={{ margin:'0 14px', background:'#fff', borderRadius:'18px', overflow:'hidden', border:'1px solid #E2E8F0' }}>
-            <Row icon="🌐" label="Preferred Language" sublabel="English, Hindi & more"     onPress={()=>router.push('/settings/language')} value="English" />
-            <Row icon="📍" label="Location Access"    sublabel="Always on for nearby jobs" toggle toggled={locationAlways} onToggle={()=>setLocationAlways(v=>!v)} />
+            <Row icon="🌐" label="Preferred Language" sublabel="English, Hindi & more"     onPress={()=>router.push('/settings/language')} value={langLabel} />
+            <Row icon="📍" label="Location Access"    sublabel="Always on for nearby jobs" toggle toggled={locationAlways} onToggle={handleLocationToggle} />
             <Row icon="🔊" label="Sound Alerts"       sublabel="Audible notifications"     toggle toggled={soundAlerts}    onToggle={()=>setSoundAlerts(v=>!v)} />
             <Row icon="📳" label="Vibration"          sublabel="Haptic feedback"           toggle toggled={vibration}      onToggle={()=>setVibration(v=>!v)} />
-            {/* Issue 18: Dark Mode — now functional */}
-            <Row icon="🌙" label="Dark Mode" sublabel="Switch to dark theme" toggle toggled={darkMode} onToggle={toggleDarkMode} last />
-          </div>
-
-          {/* Privacy & Security */}
-          <SectionHeader label="Privacy & Security" />
-          <div style={{ margin:'0 14px', background:'#fff', borderRadius:'18px', overflow:'hidden', border:'1px solid #E2E8F0' }}>
-            <Row icon="👆" label="Biometric Login" sublabel="Face ID / Fingerprint" toggle toggled={biometric} onToggle={()=>setBiometric(v=>!v)} />
-            <Row icon="🔑" label="Change PIN"      sublabel="Update your login PIN" onPress={()=>router.push('/settings/change-pin')} last />
+            <Row icon="🌙" label="Dark Mode"          sublabel="Switch to dark theme"      toggle toggled={darkMode}       onToggle={toggleDarkMode} last />
           </div>
 
           {/* Billing */}
           <SectionHeader label="Billing" />
           <div style={{ margin:'0 14px', background:'#fff', borderRadius:'18px', overflow:'hidden', border:'1px solid #E2E8F0' }}>
             <Row icon="💳" label="Billing Information"     sublabel="GST, address, invoices"     onPress={()=>router.push('/settings/billing')} />
-            <Row icon="🏦" label="Saved Cards"             sublabel="Manage payment methods"     onPress={()=>router.push('/settings/cards')} />
+            <Row icon="🏦" label="Saved Cards"             sublabel="Cards & UPI addresses"      onPress={()=>router.push('/settings/cards')} />
             <Row icon="💰" label="Payments & Transactions" sublabel="History and receipts"       onPress={()=>router.push('/settings/payments')} />
             <Row icon="🎁" label="Gift Cards & Credits"    sublabel="Redeem & check balance"     onPress={()=>router.push('/settings/credits')} />
             <Row icon="👥" label="Invite a Friend"         sublabel="Earn rewards for referrals" onPress={()=>router.push('/settings/invite')} last />
@@ -177,18 +191,14 @@ export default function SettingsPage() {
           {/* More */}
           <SectionHeader label="More" />
           <div style={{ margin:'0 14px', background:'#fff', borderRadius:'18px', overflow:'hidden', border:'1px solid #E2E8F0' }}>
-            <Row icon="💬" label="Help & Support"     sublabel="Chat with our team"  onPress={()=>info('Help & Support','Contact us at:\nsupport@carebridge.in\n\nAvailable Mon–Sat, 9 AM – 6 PM','💬')} />
+            <Row icon="💬" label="Help & Support"     sublabel="FAQ & contact"       onPress={()=>router.push('/settings/help')} />
             <Row icon="⭐" label="Rate the App"       sublabel="Share your feedback" onPress={()=>router.push('/settings/rate')} />
             <Row icon="♿" label="Accessibility"       sublabel="Font size, contrast" onPress={()=>router.push('/settings/accessibility')} />
             <Row icon="📄" label="Terms & Conditions"                                onPress={()=>router.push('/terms')} />
             <Row icon="🔒" label="Privacy Policy"                                   onPress={()=>router.push('/privacy')} />
-            <Row icon="📦" label="Open Source Libraries" onPress={()=>showPopup({
-              type:'info', title:'Open Source Libraries', icon:'📦',
-              body:'Next.js 14 · React 18 · TypeScript\nTailwind CSS · Zustand · SWR\ndate-fns · lucide-react · clsx\n\n© Respective authors. MIT License.',
-              actions:[{ label:'OK', variant:'primary', fn:closePopup }],
-            })} />
-            <Row icon="🏅" label="Licenses & Registration"          onPress={()=>comingSoon('Licenses & Registration')} />
-            <Row icon="ℹ️" label="App Version" value="v2.5.0"       onPress={()=>info('CareBridge Assistant','Version 2.5.0\nBuild 2026.04.01\n\n© 2026 CareBridge Technologies','ℹ️')} last />
+            <Row icon="📦" label="Open Source Libraries"                             onPress={()=>router.push('/settings/opensource')} />
+            <Row icon="🏅" label="Licenses & Registration"                           onPress={()=>router.push('/settings/licenses')} />
+            <Row icon="ℹ️" label="App Version" value="v2.5.0"                       onPress={()=>info('CareBridge Assistant','Version 2.5.0\nBuild 2026.04.01\n\n© 2026 CareBridge Technologies','ℹ️')} last />
           </div>
 
           {/* Account Actions */}

@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useStore } from '@/lib/store'
+import MobileFrame from '@/components/MobileFrame'
 
 function PopupLayer() {
   const { popup, closePopup } = useStore()
@@ -26,101 +27,123 @@ function PopupLayer() {
   )
 }
 
-interface Card { id:string; type:'visa'|'mastercard'|'upi'|'netbanking'; label:string; last4?:string; expiry?:string; isDefault:boolean; upiId?:string }
-
-const CARD_GRADIENTS = { visa:'linear-gradient(135deg,#1a1a2e,#16213e)', mastercard:'linear-gradient(135deg,#e65c00,#f9d423)', upi:'linear-gradient(135deg,#0D9488,#065f52)', netbanking:'linear-gradient(135deg,#2563EB,#1e40af)' }
-const CARD_ICONS = { visa:'💳', mastercard:'💳', upi:'📱', netbanking:'🏦' }
-
-function CardItem({ card, onDelete, onSetDefault }: { card:Card; onDelete:()=>void; onSetDefault:()=>void }) {
-  return (
-    <div style={{ margin:'0 0 10px', background:'#fff', borderRadius:'18px', padding:'14px 16px', border:`1.5px solid ${card.isDefault?'#CCFBF1':'#E2E8F0'}`, position:'relative' }}>
-      {card.isDefault && <div style={{ position:'absolute', top:'10px', right:'14px', background:'#EDFAF7', color:'#0D9488', fontSize:'10px', fontWeight:700, padding:'3px 9px', borderRadius:'100px' }}>★ Default</div>}
-      <div style={{ display:'flex', alignItems:'center', gap:'13px', marginBottom:'12px' }}>
-        <div style={{ width:'48px', height:'32px', borderRadius:'8px', background:CARD_GRADIENTS[card.type], display:'flex', alignItems:'center', justifyContent:'center', fontSize:'18px', flexShrink:0 }}>{CARD_ICONS[card.type]}</div>
-        <div style={{ flex:1 }}>
-          <div style={{ fontSize:'14px', fontWeight:800, color:'#0F172A' }}>{card.label}</div>
-          <div style={{ fontSize:'12px', color:'#64748B', marginTop:'2px' }}>
-            {card.last4 ? `•••• •••• •••• ${card.last4}  ·  Exp ${card.expiry}` : card.upiId || ''}
-          </div>
-        </div>
-      </div>
-      <div style={{ display:'flex', gap:'8px' }}>
-        {!card.isDefault && <button onClick={onSetDefault} style={{ flex:1, padding:'9px', background:'#EDFAF7', border:'1px solid #CCFBF1', borderRadius:'12px', fontSize:'12px', fontWeight:700, color:'#0D9488', cursor:'pointer', fontFamily:'DM Sans, sans-serif' }}>Set Default</button>}
-        <button onClick={onDelete} style={{ flex:1, padding:'9px', background:'#FEF2F2', border:'1px solid #FECACA', borderRadius:'12px', fontSize:'12px', fontWeight:700, color:'#DC2626', cursor:'pointer', fontFamily:'DM Sans, sans-serif' }}>Remove</button>
-      </div>
-    </div>
-  )
-}
+interface Card { id:string; type:'visa'|'mastercard'; label:string; last4:string; expiry:string; isDefault:boolean }
+interface UPI  { id:string; label:string; upiId:string; isDefault:boolean }
 
 const SEED_CARDS: Card[] = [
-  { id:'c1', type:'visa',    label:'HDFC Visa',      last4:'4242', expiry:'08/27', isDefault:true },
-  { id:'c2', type:'upi',     label:'UPI',            upiId:'rajan@okaxis',         isDefault:false },
-  { id:'c3', type:'mastercard', label:'SBI Mastercard', last4:'8810', expiry:'12/26', isDefault:false },
+  { id:'c1', type:'visa',       label:'HDFC Visa',        last4:'4242', expiry:'08/27', isDefault:true },
+  { id:'c2', type:'mastercard', label:'SBI Mastercard',   last4:'8810', expiry:'12/26', isDefault:false },
 ]
+const SEED_UPI: UPI[] = [
+  { id:'u1', label:'Axis Bank UPI',  upiId:'rajan@okaxis',  isDefault:true },
+  { id:'u2', label:'PhonePe',        upiId:'rajan@ybl',     isDefault:false },
+]
+
+const CARD_GRADIENTS = { visa:'linear-gradient(135deg,#1a1a2e,#16213e)', mastercard:'linear-gradient(135deg,#e65c00,#f9d423)' }
 
 export default function SavedCardsPage() {
   const router = useRouter()
   const { showPopup, closePopup } = useStore()
-  const [cards, setCards] = useState<Card[]>(SEED_CARDS)
-  const [sheetOpen, setSheetOpen] = useState(false)
-  const [newType,   setNewType]   = useState<Card['type']>('upi')
-  const [newLabel,  setNewLabel]  = useState('')
-  const [newLast4,  setNewLast4]  = useState('')
-  const [newExpiry, setNewExpiry] = useState('')
-  const [newUpi,    setNewUpi]    = useState('')
+  const [cards,      setCards]      = useState<Card[]>(SEED_CARDS)
+  const [upis,       setUpis]       = useState<UPI[]>(SEED_UPI)
+  const [sheetOpen,  setSheetOpen]  = useState(false)
+  const [sheetType,  setSheetType]  = useState<'card'|'upi'>('card')
+  const [newLabel,   setNewLabel]   = useState('')
+  const [newLast4,   setNewLast4]   = useState('')
+  const [newExpiry,  setNewExpiry]  = useState('')
+  const [newUpi,     setNewUpi]     = useState('')
+  const [newCardType,setNewCardType]= useState<'visa'|'mastercard'>('visa')
 
-  const remove = (c:Card) => showPopup({ type:'confirm', title:'Remove Card?', body:`Remove ${c.label} from saved payment methods?`, icon:'🗑️',
-    actions:[
-      { label:'Remove', variant:'danger', fn:()=>{ setCards(p=>p.filter(x=>x.id!==c.id)); closePopup() } },
-      { label:'Cancel', variant:'secondary', fn:closePopup },
-    ]
+  const removeCard = (c:Card) => showPopup({ type:'confirm', title:'Remove Card?', body:`Remove ${c.label} ending in ${c.last4}?`, icon:'🗑️',
+    actions:[{ label:'Remove', variant:'danger', fn:()=>{ setCards(p=>p.filter(x=>x.id!==c.id)); closePopup() } },{ label:'Cancel', variant:'secondary', fn:closePopup }]
+  })
+  const removeUpi = (u:UPI) => showPopup({ type:'confirm', title:'Remove UPI?', body:`Remove ${u.upiId}?`, icon:'🗑️',
+    actions:[{ label:'Remove', variant:'danger', fn:()=>{ setUpis(p=>p.filter(x=>x.id!==u.id)); closePopup() } },{ label:'Cancel', variant:'secondary', fn:closePopup }]
   })
 
-  const setDefault = (id:string) => {
-    setCards(p=>p.map(c=>({ ...c, isDefault:c.id===id })))
-    showPopup({ type:'success', title:'Default Updated ✅', body:'This payment method is now your default.', icon:'✅', actions:[{ label:'OK', variant:'primary', fn:closePopup }] })
-  }
+  const setDefaultCard = (id:string) => { setCards(p=>p.map(c=>({...c,isDefault:c.id===id}))); showPopup({ type:'success', title:'Default Updated ✅', body:'This card is now your default.', icon:'✅', actions:[{ label:'OK', variant:'primary', fn:closePopup }] }) }
+  const setDefaultUpi  = (id:string) => { setUpis(p=>p.map(u=>({...u,isDefault:u.id===id}))); showPopup({ type:'success', title:'Default Updated ✅', body:'This UPI is now your default.', icon:'✅', actions:[{ label:'OK', variant:'primary', fn:closePopup }] }) }
 
   const addCard = () => {
-    if (!newLabel.trim()) return
-    const newC: Card = { id:`c${Date.now()}`, type:newType, label:newLabel.trim(), last4:newLast4||undefined, expiry:newExpiry||undefined, upiId:newUpi||undefined, isDefault:false }
-    setCards(p=>[...p, newC])
-    setSheetOpen(false); setNewLabel(''); setNewLast4(''); setNewExpiry(''); setNewUpi('')
-    showPopup({ type:'success', title:'Card Added ✅', body:`${newC.label} has been added.`, icon:'✅', actions:[{ label:'OK', variant:'primary', fn:closePopup }] })
+    if (!newLabel.trim() || !newLast4 || !newExpiry) return
+    setCards(p=>[...p, { id:`c${Date.now()}`, type:newCardType, label:newLabel.trim(), last4:newLast4, expiry:newExpiry, isDefault:false }])
+    setSheetOpen(false); setNewLabel(''); setNewLast4(''); setNewExpiry('')
+    showPopup({ type:'success', title:'Card Added ✅', body:'Your card has been saved.', icon:'✅', actions:[{ label:'OK', variant:'primary', fn:closePopup }] })
+  }
+  const addUpi = () => {
+    if (!newLabel.trim() || !newUpi.trim()) return
+    setUpis(p=>[...p, { id:`u${Date.now()}`, label:newLabel.trim(), upiId:newUpi.trim(), isDefault:false }])
+    setSheetOpen(false); setNewLabel(''); setNewUpi('')
+    showPopup({ type:'success', title:'UPI Added ✅', body:'Your UPI address has been saved.', icon:'✅', actions:[{ label:'OK', variant:'primary', fn:closePopup }] })
   }
 
   const inp: React.CSSProperties = { width:'100%', padding:'12px 14px', background:'#F8FAFC', border:'1.5px solid #E2E8F0', borderRadius:'12px', fontSize:'14px', color:'#0F172A', fontFamily:'DM Sans, sans-serif', outline:'none', boxSizing:'border-box', marginBottom:'12px' }
 
   return (
-    <div style={{ minHeight:'100vh', background:'#0a0f1e', display:'flex', alignItems:'center', justifyContent:'center' }}>
-      <div style={{ width:'390px', height:'844px', borderRadius:'48px', overflow:'hidden', position:'relative', flexShrink:0, boxShadow:'0 0 0 10px #1e293b, 0 0 0 12px #334155, 0 40px 80px rgba(0,0,0,0.8)', background:'#F8FAFC' }}>
-        <div style={{ position:'absolute', top:0, left:'50%', transform:'translateX(-50%)', width:'126px', height:'34px', background:'#111827', borderRadius:'0 0 20px 20px', zIndex:50 }} />
-        <div style={{ position:'absolute', inset:0, display:'flex', flexDirection:'column' }}>
+    <MobileFrame>
+      <div style={{ position:'absolute', inset:0, display:'flex', flexDirection:'column' }}>
 
-          <div style={{ height:'50px', padding:'14px 20px 0', display:'flex', alignItems:'center', justifyContent:'space-between', background:'#fff', flexShrink:0 }}>
-            <span style={{ fontSize:'12px', fontWeight:700, color:'#0F172A' }}>9:41</span>
+        <div style={{ height:'50px', padding:'14px 20px 0', display:'flex', alignItems:'center', justifyContent:'space-between', background:'#fff', flexShrink:0 }}>
+          <span style={{ fontSize:'12px', fontWeight:700, color:'#0F172A' }}>9:41</span>
+        </div>
+
+        <div style={{ height:'56px', background:'#fff', display:'flex', alignItems:'center', padding:'0 16px', gap:'10px', borderBottom:'1px solid #E2E8F0', flexShrink:0 }}>
+          <button onClick={()=>router.back()} style={{ width:'38px', height:'38px', borderRadius:'50%', background:'#F1F5F9', border:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><polyline points="15 18 9 12 15 6" stroke="#334155" strokeWidth="2.5" strokeLinecap="round"/></svg>
+          </button>
+          <span style={{ flex:1, textAlign:'center', fontSize:'17px', fontWeight:800, color:'#0F172A' }}>Saved Cards & UPI</span>
+          <div style={{ width:'38px' }} />
+        </div>
+
+        <div style={{ flex:1, overflowY:'auto', padding:'14px', paddingBottom:'32px' }}>
+
+          {/* ── Card Details Section ── */}
+          <div style={{ fontSize:'11px', fontWeight:700, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.6px', marginBottom:'10px' }}>
+            💳 Card Details
           </div>
-
-          <div style={{ height:'56px', background:'#fff', display:'flex', alignItems:'center', padding:'0 16px', gap:'10px', borderBottom:'1px solid #E2E8F0', flexShrink:0 }}>
-            <button onClick={()=>router.back()} style={{ width:'38px', height:'38px', borderRadius:'50%', background:'#F1F5F9', border:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><polyline points="15 18 9 12 15 6" stroke="#334155" strokeWidth="2.5" strokeLinecap="round"/></svg>
-            </button>
-            <span style={{ flex:1, textAlign:'center', fontSize:'17px', fontWeight:800, color:'#0F172A' }}>Saved Cards</span>
-            <button onClick={()=>setSheetOpen(true)} style={{ width:'38px', height:'38px', borderRadius:'50%', background:'#EDFAF7', border:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0D9488" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            </button>
-          </div>
-
-          <div style={{ flex:1, overflowY:'auto', padding:'14px', paddingBottom:'32px' }}>
-            <div style={{ fontSize:'11px', fontWeight:700, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.6px', marginBottom:'10px' }}>
-              {cards.length} Saved Method{cards.length!==1?'s':''}
+          {cards.map(c => (
+            <div key={c.id} style={{ background:'#fff', borderRadius:'18px', padding:'14px 16px', border:`1.5px solid ${c.isDefault?'#CCFBF1':'#E2E8F0'}`, marginBottom:'10px', position:'relative' }}>
+              {c.isDefault && <div style={{ position:'absolute', top:'10px', right:'14px', background:'#EDFAF7', color:'#0D9488', fontSize:'10px', fontWeight:700, padding:'3px 9px', borderRadius:'100px' }}>★ Default</div>}
+              <div style={{ display:'flex', alignItems:'center', gap:'13px', marginBottom:'12px' }}>
+                <div style={{ width:'48px', height:'32px', borderRadius:'8px', background:CARD_GRADIENTS[c.type], display:'flex', alignItems:'center', justifyContent:'center', fontSize:'18px' }}>💳</div>
+                <div>
+                  <div style={{ fontSize:'14px', fontWeight:800, color:'#0F172A' }}>{c.label}</div>
+                  <div style={{ fontSize:'12px', color:'#64748B', marginTop:'2px' }}>•••• •••• •••• {c.last4} · Exp {c.expiry}</div>
+                </div>
+              </div>
+              <div style={{ display:'flex', gap:'8px' }}>
+                {!c.isDefault && <button onClick={()=>setDefaultCard(c.id)} style={{ flex:1, padding:'9px', background:'#EDFAF7', border:'1px solid #CCFBF1', borderRadius:'12px', fontSize:'12px', fontWeight:700, color:'#0D9488', cursor:'pointer', fontFamily:'DM Sans, sans-serif' }}>Set Default</button>}
+                <button onClick={()=>removeCard(c)} style={{ flex:1, padding:'9px', background:'#FEF2F2', border:'1px solid #FECACA', borderRadius:'12px', fontSize:'12px', fontWeight:700, color:'#DC2626', cursor:'pointer', fontFamily:'DM Sans, sans-serif' }}>Remove</button>
+              </div>
             </div>
-            {cards.map(c => <CardItem key={c.id} card={c} onDelete={()=>remove(c)} onSetDefault={()=>setDefault(c.id)} />)}
-            <button onClick={()=>setSheetOpen(true)} style={{ width:'100%', padding:'14px', background:'transparent', border:'2px dashed #CBD5E1', borderRadius:'18px', fontSize:'14px', fontWeight:700, color:'#64748B', cursor:'pointer', fontFamily:'DM Sans, sans-serif', display:'flex', alignItems:'center', justifyContent:'center', gap:'8px', marginTop:'4px' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              Add Payment Method
-            </button>
+          ))}
+          <button onClick={()=>{ setSheetType('card'); setSheetOpen(true) }} style={{ width:'100%', padding:'13px', background:'transparent', border:'2px dashed #CBD5E1', borderRadius:'16px', fontSize:'13px', fontWeight:700, color:'#64748B', cursor:'pointer', fontFamily:'DM Sans, sans-serif', marginBottom:'20px', display:'flex', alignItems:'center', justifyContent:'center', gap:'6px' }}>
+            + Add Card
+          </button>
+
+          {/* ── Saved UPI Section ── */}
+          <div style={{ fontSize:'11px', fontWeight:700, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.6px', marginBottom:'10px' }}>
+            📱 Saved UPI Addresses
           </div>
+          {upis.map(u => (
+            <div key={u.id} style={{ background:'#fff', borderRadius:'18px', padding:'14px 16px', border:`1.5px solid ${u.isDefault?'#CCFBF1':'#E2E8F0'}`, marginBottom:'10px', position:'relative' }}>
+              {u.isDefault && <div style={{ position:'absolute', top:'10px', right:'14px', background:'#EDFAF7', color:'#0D9488', fontSize:'10px', fontWeight:700, padding:'3px 9px', borderRadius:'100px' }}>★ Default</div>}
+              <div style={{ display:'flex', alignItems:'center', gap:'13px', marginBottom:'12px' }}>
+                <div style={{ width:'42px', height:'42px', borderRadius:'12px', background:'linear-gradient(135deg,#0D9488,#065f52)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'20px' }}>📱</div>
+                <div>
+                  <div style={{ fontSize:'14px', fontWeight:800, color:'#0F172A' }}>{u.label}</div>
+                  <div style={{ fontSize:'12px', color:'#64748B', marginTop:'2px' }}>{u.upiId}</div>
+                </div>
+              </div>
+              <div style={{ display:'flex', gap:'8px' }}>
+                {!u.isDefault && <button onClick={()=>setDefaultUpi(u.id)} style={{ flex:1, padding:'9px', background:'#EDFAF7', border:'1px solid #CCFBF1', borderRadius:'12px', fontSize:'12px', fontWeight:700, color:'#0D9488', cursor:'pointer', fontFamily:'DM Sans, sans-serif' }}>Set Default</button>}
+                <button onClick={()=>removeUpi(u)} style={{ flex:1, padding:'9px', background:'#FEF2F2', border:'1px solid #FECACA', borderRadius:'12px', fontSize:'12px', fontWeight:700, color:'#DC2626', cursor:'pointer', fontFamily:'DM Sans, sans-serif' }}>Remove</button>
+              </div>
+            </div>
+          ))}
+          <button onClick={()=>{ setSheetType('upi'); setSheetOpen(true) }} style={{ width:'100%', padding:'13px', background:'transparent', border:'2px dashed #CBD5E1', borderRadius:'16px', fontSize:'13px', fontWeight:700, color:'#64748B', cursor:'pointer', fontFamily:'DM Sans, sans-serif', display:'flex', alignItems:'center', justifyContent:'center', gap:'6px' }}>
+            + Add UPI Address
+          </button>
         </div>
 
         {/* Add sheet */}
@@ -129,30 +152,34 @@ export default function SavedCardsPage() {
             style={{ position:'absolute', inset:0, zIndex:200, background:'rgba(15,23,42,0.55)', display:'flex', flexDirection:'column', justifyContent:'flex-end' }}>
             <div style={{ background:'#fff', borderRadius:'28px 28px 0 0', padding:'0 20px 36px', maxHeight:'80%', overflowY:'auto' }}>
               <div style={{ width:'36px', height:'4px', background:'#E2E8F0', borderRadius:'2px', margin:'14px auto 20px' }} />
-              <h3 style={{ fontSize:'20px', fontWeight:800, color:'#0F172A', letterSpacing:'-0.4px', marginBottom:'16px' }}>Add Payment Method</h3>
-              <div style={{ display:'flex', gap:'8px', marginBottom:'16px' }}>
-                {(['upi','visa','mastercard','netbanking'] as Card['type'][]).map(t => (
-                  <button key={t} onClick={()=>setNewType(t)} style={{ flex:1, padding:'8px 4px', borderRadius:'10px', border:'none', cursor:'pointer', background:newType===t?'#0D9488':'#F1F5F9', color:newType===t?'#fff':'#475569', fontSize:'11px', fontWeight:700, fontFamily:'DM Sans, sans-serif' }}>
-                    {CARD_ICONS[t]}<br/>{t.toUpperCase()}
-                  </button>
-                ))}
-              </div>
-              <input value={newLabel} onChange={e=>setNewLabel(e.target.value)} placeholder="Label (e.g. HDFC Visa)" style={inp} />
-              {(newType==='visa'||newType==='mastercard') && <>
-                <input value={newLast4} onChange={e=>setNewLast4(e.target.value.slice(0,4))} placeholder="Last 4 digits" inputMode="numeric" maxLength={4} style={inp} />
-                <input value={newExpiry} onChange={e=>setNewExpiry(e.target.value)} placeholder="Expiry MM/YY" style={inp} />
-              </>}
-              {newType==='upi' && <input value={newUpi} onChange={e=>setNewUpi(e.target.value)} placeholder="UPI ID (e.g. name@okaxis)" style={inp} />}
-              <button onClick={addCard} disabled={!newLabel.trim()} style={{ width:'100%', padding:'15px', background:!newLabel.trim()?'#CBD5E1':'#0D9488', border:'none', borderRadius:'14px', color:'#fff', fontSize:'15px', fontWeight:700, cursor:!newLabel.trim()?'not-allowed':'pointer', fontFamily:'DM Sans, sans-serif', marginBottom:'10px' }}>
-                Add Method →
-              </button>
+              <h3 style={{ fontSize:'20px', fontWeight:800, color:'#0F172A', marginBottom:'16px' }}>{sheetType==='card'?'Add Card':'Add UPI Address'}</h3>
+              {sheetType === 'card' ? (
+                <>
+                  <div style={{ display:'flex', gap:'8px', marginBottom:'14px' }}>
+                    {(['visa','mastercard'] as const).map(t => (
+                      <button key={t} onClick={()=>setNewCardType(t)} style={{ flex:1, padding:'10px', borderRadius:'10px', border:'none', cursor:'pointer', background:newCardType===t?'#0D9488':'#F1F5F9', color:newCardType===t?'#fff':'#475569', fontSize:'13px', fontWeight:700, fontFamily:'DM Sans, sans-serif' }}>
+                        💳 {t.charAt(0).toUpperCase()+t.slice(1)}
+                      </button>
+                    ))}
+                  </div>
+                  <input value={newLabel} onChange={e=>setNewLabel(e.target.value)} placeholder="Card label (e.g. HDFC Visa)" style={inp} />
+                  <input value={newLast4} onChange={e=>setNewLast4(e.target.value.replace(/\D/g,'').slice(0,4))} placeholder="Last 4 digits" inputMode="numeric" maxLength={4} style={inp} />
+                  <input value={newExpiry} onChange={e=>setNewExpiry(e.target.value)} placeholder="Expiry MM/YY" style={inp} />
+                  <button onClick={addCard} disabled={!newLabel.trim()||!newLast4||!newExpiry} style={{ width:'100%', padding:'15px', background:(!newLabel.trim()||!newLast4||!newExpiry)?'#CBD5E1':'#0D9488', border:'none', borderRadius:'14px', color:'#fff', fontSize:'15px', fontWeight:700, cursor:'pointer', fontFamily:'DM Sans, sans-serif', marginBottom:'10px' }}>Add Card →</button>
+                </>
+              ) : (
+                <>
+                  <input value={newLabel} onChange={e=>setNewLabel(e.target.value)} placeholder="Label (e.g. PhonePe)" style={inp} />
+                  <input value={newUpi} onChange={e=>setNewUpi(e.target.value)} placeholder="UPI ID (e.g. name@okaxis)" style={inp} />
+                  <button onClick={addUpi} disabled={!newLabel.trim()||!newUpi.trim()} style={{ width:'100%', padding:'15px', background:(!newLabel.trim()||!newUpi.trim())?'#CBD5E1':'#0D9488', border:'none', borderRadius:'14px', color:'#fff', fontSize:'15px', fontWeight:700, cursor:'pointer', fontFamily:'DM Sans, sans-serif', marginBottom:'10px' }}>Add UPI →</button>
+                </>
+              )}
               <button onClick={()=>setSheetOpen(false)} style={{ width:'100%', padding:'14px', background:'transparent', border:'1.5px solid #E2E8F0', borderRadius:'14px', color:'#64748B', fontSize:'14px', fontWeight:700, cursor:'pointer', fontFamily:'DM Sans, sans-serif' }}>Cancel</button>
             </div>
           </div>
         )}
-
-        <PopupLayer />
       </div>
-    </div>
+      <PopupLayer />
+    </MobileFrame>
   )
 }
