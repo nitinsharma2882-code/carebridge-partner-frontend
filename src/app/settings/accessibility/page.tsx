@@ -99,21 +99,19 @@ export default function AccessibilityPage() {
   const router = useRouter()
   const { showPopup, closePopup } = useStore()
 
-  const [settings,    setSettings]    = useState<AccessibilitySettings>(DEFAULTS)
-  const [saved,       setSaved]       = useState<AccessibilitySettings>(DEFAULTS)
-  const [hasChanges,  setHasChanges]  = useState(false)
+  const [settings,   setSettings]   = useState<AccessibilitySettings>(DEFAULTS)
+  const [saved,      setSaved]      = useState<AccessibilitySettings>(DEFAULTS)
+  const [hasChanges, setHasChanges] = useState(false)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
     try {
       const stored = localStorage.getItem(STORAGE_KEY)
       if (stored) {
-        const parsed = JSON.parse(stored) as AccessibilitySettings
-        // Strip screenReader if it exists from old data
-        const { ...clean } = parsed as any
-        delete clean.screenReader
-        setSettings({ ...DEFAULTS, ...clean })
-        setSaved({ ...DEFAULTS, ...clean })
+        const parsed = JSON.parse(stored) as any
+        delete parsed.screenReader
+        setSettings({ ...DEFAULTS, ...parsed })
+        setSaved({ ...DEFAULTS, ...parsed })
       }
     } catch {}
   }, [])
@@ -162,8 +160,6 @@ export default function AccessibilityPage() {
     })
   }
 
-  const previewSize = FONT_OPTIONS.find(f => f.key === settings.fontSize)?.size || '15px'
-
   return (
     <MobileFrame>
       <div style={{ position:'absolute', inset:0, display:'flex', flexDirection:'column' }}>
@@ -188,41 +184,8 @@ export default function AccessibilityPage() {
           }
         </div>
 
-        {/* Scrollable content */}
+        {/* Scrollable content — Live Preview and Booking Actions REMOVED */}
         <div style={{ flex:1, overflowY:'auto', padding:'0 14px 32px', background:settings.highContrast?'#000':'#F8FAFC' }}>
-
-        
-              <div style={{ fontSize:`calc(${previewSize} - 2px)`, fontWeight:settings.boldText?700:400, color:settings.highContrast?'#ccc':'#64748B', lineHeight:1.5, marginBottom:'12px' }}>
-                Adjust settings to see how the app will look for you.
-              </div>
-              {/* Working Accept / Decline preview */}
-              <div style={{ display:'flex', gap:'8px' }}>
-                <button
-                  onClick={() => showPopup({
-                    type:'success', title:'Booking Accepted ✅',
-                    body:'You have accepted the booking request.\nThe customer has been notified.',
-                    icon:'✅',
-                    actions:[{ label:'OK', variant:'primary', fn:closePopup }],
-                  })}
-                  style={{ flex:1, padding:settings.largeButtons?'12px':'8px', background:settings.highContrast?'#0D9488':'#EDFAF7', border:'none', borderRadius:settings.largeButtons?'12px':'8px', color:settings.highContrast?'#fff':'#0D9488', fontSize:settings.largeButtons?'14px':'12px', fontWeight:700, cursor:'pointer', fontFamily:'DM Sans, sans-serif' }}>
-                  ✓ Accept
-                </button>
-                <button
-                  onClick={() => showPopup({
-                    type:'confirm', title:'Decline Booking?',
-                    body:'Are you sure you want to decline this request?\nThe customer will be notified.',
-                    icon:'❌',
-                    actions:[
-                      { label:'Yes, Decline', variant:'danger',    fn:() => { closePopup(); showPopup({ type:'info', title:'Booking Declined', body:'The request has been declined.', icon:'❌', actions:[{ label:'OK', variant:'primary', fn:closePopup }] }) } },
-                      { label:'Cancel',       variant:'secondary', fn:closePopup },
-                    ],
-                  })}
-                  style={{ flex:1, padding:settings.largeButtons?'12px':'8px', background:settings.highContrast?'#333':'#FEE2E2', border:`1px solid ${settings.highContrast?'#555':'#FECACA'}`, borderRadius:settings.largeButtons?'12px':'8px', color:settings.highContrast?'#fff':'#DC2626', fontSize:settings.largeButtons?'14px':'12px', fontWeight:700, cursor:'pointer', fontFamily:'DM Sans, sans-serif' }}>
-                  ✕ Decline
-                </button>
-              </div>
-            </div>
-          </div>
 
           {/* Text Size */}
           <SectionHeader label="Text Size" />
@@ -251,34 +214,6 @@ export default function AccessibilityPage() {
           <div style={{ background:'#fff', borderRadius:'18px', overflow:'hidden', border:'1px solid #E2E8F0' }}>
             <Row icon="🎞️" label="Reduce Motion"   sublabel="Minimises animations and transitions" toggled={settings.reduceMotion}   onToggle={()=>toggle('reduceMotion')} />
             <Row icon="📳" label="Haptic Feedback" sublabel="Vibrate on button taps"               toggled={settings.hapticFeedback} onToggle={()=>toggle('hapticFeedback')} last />
-          </div>
-
-        
-            <div style={{ display:'flex', gap:'10px' }}>
-              <button
-                onClick={() => showPopup({
-                  type:'success', title:'Booking Accepted ✅',
-                  body:'You have accepted the booking request.\nThe customer has been notified.',
-                  icon:'✅',
-                  actions:[{ label:'OK', variant:'primary', fn:closePopup }],
-                })}
-                style={{ flex:1, padding:settings.largeButtons?'16px':'12px', background:'#0D9488', border:'none', borderRadius:settings.largeButtons?'14px':'10px', color:'#fff', fontSize:settings.largeButtons?'15px':'13px', fontWeight:700, cursor:'pointer', fontFamily:'DM Sans, sans-serif' }}>
-                ✓ Accept
-              </button>
-              <button
-                onClick={() => showPopup({
-                  type:'confirm', title:'Decline Booking?',
-                  body:'Are you sure you want to decline this request?\nThe customer will be notified.',
-                  icon:'❌',
-                  actions:[
-                    { label:'Yes, Decline', variant:'danger',    fn:() => { closePopup(); showPopup({ type:'info', title:'Booking Declined', body:'The request has been declined.', icon:'❌', actions:[{ label:'OK', variant:'primary', fn:closePopup }] }) } },
-                    { label:'Cancel',       variant:'secondary', fn:closePopup },
-                  ],
-                })}
-                style={{ flex:1, padding:settings.largeButtons?'16px':'12px', background:'#FEE2E2', border:'1.5px solid #FECACA', borderRadius:settings.largeButtons?'14px':'10px', color:'#DC2626', fontSize:settings.largeButtons?'15px':'13px', fontWeight:700, cursor:'pointer', fontFamily:'DM Sans, sans-serif' }}>
-                ✕ Decline
-              </button>
-            </div>
           </div>
 
           {/* Save + Reset */}
