@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useStore } from '@/lib/store'
 import BottomNav from '@/components/BottomNav'
@@ -61,33 +61,44 @@ const TESTIMONIALS = [
   { name:'Amit S',   stars:4, quote:'Great platform for healthcare workers. Payments are always on time.',        initials:'AS', bg:'#FFF7ED', color:'#D97706' },
 ]
 
-// ── Simulated incoming request shape ─────────────────────
 interface IncomingRequest {
-  id:       string
-  distance: string
-  service:  string
-  fare:     number
+  id:string; distance:string; service:string; fare:number
 }
+
+// Key for sessionStorage scroll position
+const SCROLL_KEY = 'home_scroll_pos'
 
 export default function HomePage() {
   const router = useRouter()
   const { isOnline, setOnline, showPopup, closePopup } = useStore()
 
-  const [userName,         setUserName]         = useState('there')
-  const [upcomingCount,    setUpcomingCount]    = useState(0)
-  const [adScreen,         setAdScreen]         = useState(false)
-  const [adData,           setAdData]           = useState<{ title:string; badge:string; sub:string }|null>(null)
-  const [comingSoonScreen, setComingSoonScreen] = useState(false)
-
-  // ── Task 2: incomingRequest is null by default ────────
-  // It only gets set when a REAL request arrives (API/websocket)
-  // Set to null on page load — never shows on reload
+  const [userName,      setUserName]      = useState('there')
+  const [upcomingCount, setUpcomingCount] = useState(0)
+  const [adScreen,      setAdScreen]      = useState(false)
+  const [adData,        setAdData]        = useState<{ title:string; badge:string; sub:string }|null>(null)
   const [incomingRequest, setIncomingRequest] = useState<IncomingRequest|null>(null)
+
+  // ── Scroll position ref ─────────────────────────────
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  // Restore scroll position on mount
+  useEffect(() => {
+    const saved = sessionStorage.getItem(SCROLL_KEY)
+    if (saved && scrollRef.current) {
+      scrollRef.current.scrollTop = parseInt(saved, 10)
+    }
+  }, [])
+
+  // Save scroll position on scroll
+  const handleScroll = () => {
+    if (scrollRef.current) {
+      sessionStorage.setItem(SCROLL_KEY, String(scrollRef.current.scrollTop))
+    }
+  }
 
   const onlineTime = isOnline ? 'Online · Ready for duty' : 'Go online to earn'
 
   useEffect(() => {
-    // Username
     try {
       const saved = localStorage.getItem('carebridge_user')
       if (saved) { const u = JSON.parse(saved); if (u.name) setUserName(u.name) }
@@ -99,7 +110,6 @@ export default function HomePage() {
       }
     }).catch(()=>{})
 
-    // Booking count
     fetch('/api/bookings').then(r=>r.json()).then(data => {
       if (data.success && data.bookings) {
         const count = data.bookings.filter((b:any) => b.status==='upcoming' || b.status==='active').length
@@ -107,7 +117,6 @@ export default function HomePage() {
       }
     }).catch(()=>{})
 
-    // Location permission
     if (navigator?.permissions) {
       navigator.permissions.query({ name:'geolocation' }).then(result => {
         if (result.state === 'denied') {
@@ -123,41 +132,24 @@ export default function HomePage() {
       }).catch(()=>{})
     }
 
-    // ── Task 2: Poll for real incoming requests ───────────
-    // Only set incomingRequest when API returns a pending request
-    // Replace this with a WebSocket listener in production
     const pollRequests = () => {
       fetch('/api/assistants/requests')
         .then(r => r.ok ? r.json() : null)
         .then(data => {
           if (data?.success && data.requests?.length > 0) {
             const first = data.requests[0]
-            setIncomingRequest({
-              id:       first.id,
-              distance: first.distance || '2.4 km',
-              service:  first.services?.[0] || 'Elder Care',
-              fare:     first.fare || 320,
-            })
+            setIncomingRequest({ id:first.id, distance:first.distance||'2.4 km', service:first.services?.[0]||'Elder Care', fare:first.fare||320 })
           } else {
-            // No requests — clear the card
             setIncomingRequest(null)
           }
         })
-        .catch(() => {
-          // API not available — do NOT show fake request
-          setIncomingRequest(null)
-        })
+        .catch(() => { setIncomingRequest(null) })
     }
 
-    // Poll only when online — every 15 seconds
     let interval: NodeJS.Timeout | null = null
-    if (isOnline) {
-      pollRequests()
-      interval = setInterval(pollRequests, 15000)
-    }
-
+    if (isOnline) { pollRequests(); interval = setInterval(pollRequests, 15000) }
     return () => { if (interval) clearInterval(interval) }
-  }, [isOnline]) // Re-run when online status changes
+  }, [isOnline])
 
   const handleToggle = () => {
     if (isOnline) {
@@ -166,17 +158,14 @@ export default function HomePage() {
         body:'Are you sure you want to go offline and stop accepting duties?',
         actions:[
           { label:'Yes, Go Offline', variant:'danger', fn:() => {
-            setOnline(false)
-            setIncomingRequest(null) // Clear any pending request when going offline
-            closePopup()
+            setOnline(false); setIncomingRequest(null); closePopup()
             showPopup({ type:'info', title:'You are Offline ⚫', icon:'⚫', body:"You won't receive any requests while offline.", actions:[{ label:'OK', variant:'primary', fn:closePopup }] })
           }},
           { label:'Stay Online', variant:'primary', fn:closePopup },
         ],
       })
     } else {
-      setOnline(true)
-      setIncomingRequest(null) // Always start fresh — no stale requests
+      setOnline(true); setIncomingRequest(null)
       showPopup({ type:'success', title:'You are Online 🟢', icon:'🟢', body:'You are now visible to customers.\nRequests will appear here.', actions:[{ label:'OK', variant:'primary', fn:closePopup }] })
     }
   }
@@ -237,8 +226,9 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Scrollable content */}
-        <div style={{ flex:1, overflowY:'auto', paddingBottom:'90px' }}>
+        {/* ── Scrollable — ref + onScroll for position restore ── */}
+        <div ref={scrollRef} onScroll={handleScroll}
+          style={{ flex:1, overflowY:'auto', paddingBottom:'90px' }}>
 
           {/* SOS Banner */}
           <div onClick={() => router.push('/sos')} style={{ margin:'12px 14px 0', borderRadius:'16px', background:'linear-gradient(135deg,#FEF2F2,#FEE2E2)', border:'1.5px solid #FECACA', padding:'14px 16px', display:'flex', alignItems:'center', justifyContent:'space-between', cursor:'pointer', animation:'sosPulse 2s infinite' }}>
@@ -282,7 +272,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* ── Task 2: New Request — ONLY when isOnline AND incomingRequest is not null ── */}
+          {/* New Request — only when real request exists */}
           {isOnline && incomingRequest && (
             <div onClick={() => router.push('/bookings')}
               style={{ margin:'10px 14px 0', borderRadius:'18px', background:'#fff', border:'2px solid #0D9488', padding:'14px 16px', display:'flex', alignItems:'center', justifyContent:'space-between', cursor:'pointer', animation:'fadeIn 0.4s ease' }}>
@@ -292,9 +282,7 @@ export default function HomePage() {
                 </div>
                 <div>
                   <div style={{ fontSize:'14px', fontWeight:700, color:'#0F172A' }}>New Request Nearby!</div>
-                  <div style={{ fontSize:'12px', color:'#64748B', marginTop:'2px' }}>
-                    {incomingRequest.distance} · {incomingRequest.service} · ₹{incomingRequest.fare}
-                  </div>
+                  <div style={{ fontSize:'12px', color:'#64748B', marginTop:'2px' }}>{incomingRequest.distance} · {incomingRequest.service} · ₹{incomingRequest.fare}</div>
                 </div>
               </div>
               <div style={{ width:'36px', height:'36px', borderRadius:'50%', background:'#0D9488', display:'flex', alignItems:'center', justifyContent:'center' }}>
@@ -343,11 +331,11 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Sponsored & Promoted */}
+          {/* Sponsored — router navigation preserves scroll */}
           <SponsoredSection onAdClick={handleAdClick} />
 
-          {/* Coming Soon */}
-          <ComingSoonSection onItemClick={() => setComingSoonScreen(true)} />
+          {/* Coming Soon — now navigates to /coming-soon page (preserves scroll) */}
+          <ComingSoonSection onItemClick={() => router.push('/coming-soon')} />
 
           {/* Testimonials */}
           <div style={{ padding:'16px 0 0' }}>
@@ -381,35 +369,6 @@ export default function HomePage() {
       {adScreen && (
         <div style={{ position:'absolute', inset:0, zIndex:200 }}>
           <AdDetailScreen ad={adData} onBack={() => setAdScreen(false)} onConfirm={handleAdConfirm} />
-        </div>
-      )}
-
-      {/* Coming Soon overlay */}
-      {comingSoonScreen && (
-        <div style={{ position:'absolute', inset:0, zIndex:200, display:'flex', flexDirection:'column', background:'#F8FAFC' }}>
-          <div style={{ flexShrink:0, display:'flex', alignItems:'center', gap:'12px', background:'#fff', borderBottom:'1px solid #E2E8F0', padding:'52px 16px 14px' }}>
-            <button onClick={() => setComingSoonScreen(false)} style={{ width:'38px', height:'38px', borderRadius:'12px', background:'#F8FAFC', border:'1px solid #E2E8F0', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
-              <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth={2.5}><polyline points="15 18 9 12 15 6"/></svg>
-            </button>
-            <h3 style={{ fontSize:'15px', fontWeight:700, color:'#0F172A', margin:0 }}>Coming Soon</h3>
-          </div>
-          <div style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'32px 24px', textAlign:'center' }}>
-            <div style={{ width:'80px', height:'80px', borderRadius:'24px', background:'linear-gradient(135deg,#0F172A,#134E4A)', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:'24px' }}>
-              <svg width={36} height={36} viewBox="0 0 24 24" fill="none" stroke="#5EEAD4" strokeWidth={1.5}><circle cx={12} cy={12} r={10}/><polyline points="12 6 12 12 16 14"/></svg>
-            </div>
-            <h2 style={{ fontSize:'20px', fontWeight:800, color:'#0F172A', margin:'0 0 8px' }}>Coming Soon!</h2>
-            <p style={{ fontSize:'13px', color:'#94A3B8', lineHeight:1.7, marginBottom:'24px' }}>
-              We are working hard to bring this feature to you. Stay tuned for updates!
-            </p>
-            <div style={{ width:'100%', borderRadius:'18px', padding:'16px', marginBottom:'24px', background:'#F0FDFA', border:'1px solid #0D9488' }}>
-              <div style={{ fontSize:'12px', fontWeight:700, color:'#0D9488', marginBottom:'4px' }}>Be the first to know</div>
-              <div style={{ fontSize:'12px', color:'#0F766E' }}>We'll notify you as soon as this feature launches.</div>
-            </div>
-            <button onClick={() => setComingSoonScreen(false)}
-              style={{ width:'100%', padding:'16px', borderRadius:'14px', fontWeight:700, color:'#fff', fontSize:'14px', border:'none', cursor:'pointer', background:'#0D9488', fontFamily:'DM Sans, sans-serif' }}>
-              Back to Home
-            </button>
-          </div>
         </div>
       )}
 

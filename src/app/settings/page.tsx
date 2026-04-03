@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useStore } from '@/lib/store'
 import BottomNav from '@/components/BottomNav'
@@ -58,49 +58,24 @@ function Row({ icon,label,sublabel,toggle,toggled,onToggle,onPress,danger,value,
 export default function SettingsPage() {
   const router = useRouter()
   const { showPopup, closePopup, logout } = useStore()
+
   const [notifBooking,   setNotifBooking]   = useState(true)
   const [notifPayment,   setNotifPayment]   = useState(true)
   const [notifPromo,     setNotifPromo]     = useState(false)
   const [notifSOS,       setNotifSOS]       = useState(true)
   const [locationAlways, setLocationAlways] = useState(true)
-  const [darkMode,       setDarkMode]       = useState(false)
   const [soundAlerts,    setSoundAlerts]    = useState(true)
   const [vibration,      setVibration]      = useState(true)
 
-  // Load persisted dark mode
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem('carebridge_dark_mode')
-      if (saved === 'true') { setDarkMode(true); applyDarkMode(true) }
-    } catch {}
-  }, [])
-
-  const applyDarkMode = (on: boolean) => {
-    document.documentElement.style.setProperty('--bg',     on ? '#0F172A' : '#F8FAFC')
-    document.documentElement.style.setProperty('--card',   on ? '#1E293B' : '#ffffff')
-    document.documentElement.style.setProperty('--text',   on ? '#F1F5F9' : '#0F172A')
-    document.documentElement.style.setProperty('--border', on ? '#334155' : '#E2E8F0')
-    // Also apply to body for full app coverage
-    document.body.style.background = on ? '#0F172A' : ''
-    document.body.style.color = on ? '#F1F5F9' : ''
-  }
-
-  const toggleDarkMode = () => {
-    const next = !darkMode
-    setDarkMode(next)
-    try { localStorage.setItem('carebridge_dark_mode', String(next)) } catch {}
-    applyDarkMode(next)
-  }
-
-  // Location toggle with confirmation popup when turning OFF
+  // Location toggle — confirmation popup before disabling
   const handleLocationToggle = () => {
     if (locationAlways) {
       showPopup({
         type:'warning', title:'Disable Location?', icon:'📍',
         body:'Disabling location may affect service availability.\nYou may not receive nearby booking requests.\n\nContinue?',
         actions:[
-          { label:'Disable', variant:'danger',    fn:() => { setLocationAlways(false); closePopup() } },
-          { label:'Keep On', variant:'primary',   fn:closePopup },
+          { label:'Disable', variant:'danger',  fn:() => { setLocationAlways(false); closePopup() } },
+          { label:'Keep On', variant:'primary',  fn:closePopup },
         ],
       })
     } else {
@@ -108,14 +83,25 @@ export default function SettingsPage() {
     }
   }
 
-  const confirm    = (title:string,body:string,icon:string,onConfirm:()=>void) => showPopup({ type:'confirm',title,body,icon, actions:[{ label:'Confirm',variant:'danger',fn:()=>{ closePopup(); onConfirm() } },{ label:'Cancel',variant:'secondary',fn:closePopup }] })
-  const info       = (title:string,body:string,icon:string) => showPopup({ type:'info',title,body,icon, actions:[{ label:'OK',variant:'primary',fn:closePopup }] })
-  const comingSoon = (label:string) => info(label,'This feature is coming in the next update!','🔧')
+  const confirm = (title:string, body:string, icon:string, onConfirm:()=>void) =>
+    showPopup({ type:'confirm', title, body, icon, actions:[
+      { label:'Confirm', variant:'danger',    fn:()=>{ closePopup(); onConfirm() } },
+      { label:'Cancel',  variant:'secondary', fn:closePopup },
+    ]})
 
-  const handleLogout        = () => confirm('Log Out?','You will be signed out of your account.','🚪',()=>{ logout(); router.replace('/login') })
-  const handleDeleteAccount = () => confirm('Delete Account?','This will permanently delete your account and all data. This cannot be undone.','⚠️',()=>{ showPopup({ type:'success',title:'Request Submitted',body:'Account deletion request sent.\nOur team will process it within 7 days.',icon:'📧', actions:[{ label:'OK',variant:'primary',fn:()=>{ closePopup(); router.replace('/login') } }] }) })
+  const info = (title:string, body:string, icon:string) =>
+    showPopup({ type:'info', title, body, icon, actions:[{ label:'OK', variant:'primary', fn:closePopup }] })
 
-  // Get saved language label
+  const handleLogout = () =>
+    confirm('Log Out?', 'You will be signed out of your account.', '🚪', () => { logout(); router.replace('/login') })
+
+  const handleDeleteAccount = () =>
+    confirm('Delete Account?', 'This will permanently delete your account and all data. This cannot be undone.', '⚠️', () => {
+      showPopup({ type:'success', title:'Request Submitted', body:'Account deletion request sent.\nOur team will process it within 7 days.', icon:'📧',
+        actions:[{ label:'OK', variant:'primary', fn:()=>{ closePopup(); router.replace('/login') } }] })
+    })
+
+  // Language label from localStorage
   const savedLang = typeof window !== 'undefined' ? localStorage.getItem('cb_assistant_language') : 'en'
   const LANG_NAMES: Record<string,string> = { en:'English', hi:'Hindi', bn:'Bengali', te:'Telugu', mr:'Marathi', ta:'Tamil', gu:'Gujarati', kn:'Kannada', ml:'Malayalam', pa:'Punjabi', or:'Odia', ur:'Urdu' }
   const langLabel = LANG_NAMES[savedLang||'en'] || 'English'
@@ -124,10 +110,12 @@ export default function SettingsPage() {
     <MobileFrame>
       <div style={{ position:'absolute', inset:0, display:'flex', flexDirection:'column' }}>
 
+        {/* Status bar */}
         <div style={{ height:'50px', padding:'14px 20px 0', display:'flex', alignItems:'center', justifyContent:'space-between', background:'#fff', flexShrink:0 }}>
           <span style={{ fontSize:'12px', fontWeight:700, color:'#0F172A' }}>9:41</span>
         </div>
 
+        {/* Header */}
         <div style={{ height:'56px', background:'#fff', display:'flex', alignItems:'center', padding:'0 16px', gap:'10px', borderBottom:'1px solid #E2E8F0', flexShrink:0 }}>
           <button onClick={()=>router.back()} style={{ width:'38px', height:'38px', borderRadius:'50%', background:'#F1F5F9', border:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><polyline points="15 18 9 12 15 6" stroke="#334155" strokeWidth="2.5" strokeLinecap="round"/></svg>
@@ -168,14 +156,13 @@ export default function SettingsPage() {
             <Row icon="📣" label="Promotions"       sublabel="Offers & announcements"  toggle toggled={notifPromo}   onToggle={()=>setNotifPromo(v=>!v)} last />
           </div>
 
-          {/* App Preferences — Biometric + Change PIN REMOVED, Location has popup */}
+          {/* App Preferences — Dark Mode REMOVED */}
           <SectionHeader label="App Preferences" />
           <div style={{ margin:'0 14px', background:'#fff', borderRadius:'18px', overflow:'hidden', border:'1px solid #E2E8F0' }}>
             <Row icon="🌐" label="Preferred Language" sublabel="English, Hindi & more"     onPress={()=>router.push('/settings/language')} value={langLabel} />
             <Row icon="📍" label="Location Access"    sublabel="Always on for nearby jobs" toggle toggled={locationAlways} onToggle={handleLocationToggle} />
             <Row icon="🔊" label="Sound Alerts"       sublabel="Audible notifications"     toggle toggled={soundAlerts}    onToggle={()=>setSoundAlerts(v=>!v)} />
-            <Row icon="📳" label="Vibration"          sublabel="Haptic feedback"           toggle toggled={vibration}      onToggle={()=>setVibration(v=>!v)} />
-            <Row icon="🌙" label="Dark Mode"          sublabel="Switch to dark theme"      toggle toggled={darkMode}       onToggle={toggleDarkMode} last />
+            <Row icon="📳" label="Vibration"          sublabel="Haptic feedback"           toggle toggled={vibration}      onToggle={()=>setVibration(v=>!v)} last />
           </div>
 
           {/* Billing */}
@@ -191,14 +178,14 @@ export default function SettingsPage() {
           {/* More */}
           <SectionHeader label="More" />
           <div style={{ margin:'0 14px', background:'#fff', borderRadius:'18px', overflow:'hidden', border:'1px solid #E2E8F0' }}>
-            <Row icon="💬" label="Help & Support"     sublabel="FAQ & contact"       onPress={()=>router.push('/settings/help')} />
-            <Row icon="⭐" label="Rate the App"       sublabel="Share your feedback" onPress={()=>router.push('/settings/rate')} />
-            <Row icon="♿" label="Accessibility"       sublabel="Font size, contrast" onPress={()=>router.push('/settings/accessibility')} />
-            <Row icon="📄" label="Terms & Conditions"                                onPress={()=>router.push('/terms')} />
-            <Row icon="🔒" label="Privacy Policy"                                   onPress={()=>router.push('/privacy')} />
-            <Row icon="📦" label="Open Source Libraries"                             onPress={()=>router.push('/settings/opensource')} />
-            <Row icon="🏅" label="Licenses & Registration"                           onPress={()=>router.push('/settings/licenses')} />
-            <Row icon="ℹ️" label="App Version" value="v2.5.0"                       onPress={()=>info('CareBridge Assistant','Version 2.5.0\nBuild 2026.04.01\n\n© 2026 CareBridge Technologies','ℹ️')} last />
+            <Row icon="💬" label="Help & Support"        sublabel="FAQ & contact"       onPress={()=>router.push('/settings/help')} />
+            <Row icon="⭐" label="Rate the App"          sublabel="Share your feedback" onPress={()=>router.push('/settings/rate')} />
+            <Row icon="♿" label="Accessibility"          sublabel="Font size, contrast" onPress={()=>router.push('/settings/accessibility')} />
+            <Row icon="📄" label="Terms & Conditions"                                   onPress={()=>router.push('/terms')} />
+            <Row icon="🔒" label="Privacy Policy"                                      onPress={()=>router.push('/privacy')} />
+            <Row icon="📦" label="Open Source Libraries"                                onPress={()=>router.push('/settings/opensource')} />
+            <Row icon="🏅" label="Licenses & Registration"                              onPress={()=>router.push('/settings/licenses')} />
+            <Row icon="ℹ️" label="App Version" value="v2.5.0"                          onPress={()=>info('CareBridge Assistant','Version 2.5.0\nBuild 2026.04.01\n\n© 2026 CareBridge Technologies','ℹ️')} last />
           </div>
 
           {/* Account Actions */}

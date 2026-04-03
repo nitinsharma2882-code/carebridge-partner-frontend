@@ -28,6 +28,23 @@ const statusStyle: Record<TxStatus,{color:string;bg:string;label:string}> = {
   processing: { color:'#2563EB', bg:'#EFF6FF', label:'⟳ Processing' },
 }
 
+// ── Saved cards only (no UPI for withdrawals) ──────────
+interface SavedCard {
+  id:      string
+  label:   string
+  bank:    string
+  last4:   string
+  expiry:  string
+  type:    'visa' | 'mastercard'
+  primary: boolean
+}
+
+const SAVED_CARDS: SavedCard[] = [
+  { id:'c1', label:'HDFC Visa',       bank:'HDFC Bank',  last4:'4242', expiry:'08/27', type:'visa',       primary:true },
+  { id:'c2', label:'SBI Mastercard',  bank:'SBI',        last4:'8810', expiry:'12/26', type:'mastercard', primary:false },
+  { id:'c3', label:'Axis Bank Visa',  bank:'Axis Bank',  last4:'3391', expiry:'03/28', type:'visa',       primary:false },
+]
+
 function PopupLayer() {
   const { popup, closePopup } = useStore()
   if (!popup) return null
@@ -51,39 +68,140 @@ function PopupLayer() {
   )
 }
 
+// ── Withdraw Modal with card selector ─────────────────────
 function WithdrawModal({ open, onClose }: { open:boolean; onClose:()=>void }) {
-  const [amount, setAmount] = useState('8640')
+  const [amount,         setAmount]         = useState('8640')
+  const [selectedCardId, setSelectedCardId] = useState(SAVED_CARDS[0].id)
   const { showPopup, closePopup } = useStore()
-  const confirm = () => { onClose(); setTimeout(() => { showPopup({ type:'success', title:'Withdrawal Initiated! ✅', body:`Amount: ₹${amount}\nBank: SBI •••• 4521\n\nFunds arrive in 1–2 business days.`, icon:'✅', actions:[{ label:'Done', variant:'primary', fn:closePopup }] }) }, 300) }
+
+  const selectedCard = SAVED_CARDS.find(c => c.id === selectedCardId)!
+
+  const confirm = () => {
+    if (!amount || parseInt(amount) < 100) {
+      showPopup({ type:'warning', title:'Invalid Amount', body:'Minimum withdrawal amount is ₹100.', icon:'⚠️', actions:[{ label:'OK', variant:'primary', fn:closePopup }] })
+      return
+    }
+    onClose()
+    setTimeout(() => {
+      showPopup({
+        type:'success', title:'Withdrawal Initiated! ✅',
+        body:`Amount: ₹${amount}\nCard: ${selectedCard.label} •••• ${selectedCard.last4}\n\nFunds arrive in 1–2 business days.`,
+        icon:'✅',
+        actions:[{ label:'Done', variant:'primary', fn:closePopup }],
+      })
+    }, 300)
+  }
+
   if (!open) return null
   return (
-    <div onClick={e=>{ if(e.target===e.currentTarget) onClose() }} style={{ position:'absolute', inset:0, zIndex:200, background:'rgba(15,23,42,0.55)', display:'flex', flexDirection:'column', justifyContent:'flex-end' }}>
-      <div style={{ background:'#fff', borderRadius:'28px 28px 0 0', padding:'0 20px 36px', maxHeight:'85%', overflowY:'auto' }}>
+    <div onClick={e=>{ if(e.target===e.currentTarget) onClose() }}
+      style={{ position:'absolute', inset:0, zIndex:200, background:'rgba(15,23,42,0.55)', display:'flex', flexDirection:'column', justifyContent:'flex-end' }}>
+      <div style={{ background:'#fff', borderRadius:'28px 28px 0 0', padding:'0 20px 36px', maxHeight:'90%', overflowY:'auto' }}>
         <div style={{ width:'36px', height:'4px', background:'#E2E8F0', borderRadius:'2px', margin:'14px auto 20px' }} />
-        <h3 style={{ fontSize:'20px', fontWeight:800, color:'#0F172A', letterSpacing:'-0.4px', marginBottom:'6px' }}>Withdraw Earnings</h3>
-        <p style={{ fontSize:'14px', color:'#64748B', marginBottom:'20px', lineHeight:1.55 }}>Transfer to SBI account ending <strong>4521</strong></p>
-        <label style={{ fontSize:'13px', fontWeight:600, color:'#475569', display:'block', marginBottom:'8px' }}>Amount</label>
-        <div style={{ position:'relative', marginBottom:'16px' }}>
+        <h3 style={{ fontSize:'20px', fontWeight:800, color:'#0F172A', letterSpacing:'-0.4px', marginBottom:'4px' }}>Withdraw Earnings</h3>
+        <p style={{ fontSize:'13px', color:'#64748B', marginBottom:'20px', lineHeight:1.55 }}>Select a saved card to receive your funds.</p>
+
+        {/* Amount */}
+        <label style={{ fontSize:'13px', fontWeight:700, color:'#0F172A', display:'block', marginBottom:'8px' }}>Withdrawal Amount</label>
+        <div style={{ position:'relative', marginBottom:'20px' }}>
           <span style={{ position:'absolute', left:'14px', top:'50%', transform:'translateY(-50%)', fontSize:'16px', fontWeight:800, color:'#64748B' }}>₹</span>
-          <input type="number" value={amount} onChange={e=>setAmount(e.target.value)} style={{ width:'100%', paddingLeft:'30px', paddingRight:'14px', paddingTop:'14px', paddingBottom:'14px', background:'#F1F5F9', border:'1.5px solid #E2E8F0', borderRadius:'12px', fontSize:'16px', color:'#0F172A', outline:'none', fontFamily:'DM Sans, sans-serif', boxSizing:'border-box' }} />
+          <input type="number" value={amount} onChange={e=>setAmount(e.target.value)}
+            style={{ width:'100%', paddingLeft:'30px', paddingRight:'14px', paddingTop:'14px', paddingBottom:'14px', background:'#F8FAFC', border:'1.5px solid #E2E8F0', borderRadius:'14px', fontSize:'18px', fontWeight:700, color:'#0F172A', outline:'none', fontFamily:'DM Sans, sans-serif', boxSizing:'border-box' }}
+            onFocus={e=>{ e.target.style.borderColor='#0D9488'; e.target.style.background='#EDFAF7' }}
+            onBlur={e=>{ e.target.style.borderColor='#E2E8F0'; e.target.style.background='#F8FAFC' }}
+          />
         </div>
-        <label style={{ fontSize:'13px', fontWeight:600, color:'#475569', display:'block', marginBottom:'8px' }}>Bank Account</label>
-        <div style={{ background:'#F1F5F9', border:'1.5px solid #E2E8F0', borderRadius:'12px', padding:'13px 16px', marginBottom:'16px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-          <div><div style={{ fontSize:'14px', fontWeight:700, color:'#0F172A' }}>SBI Savings Account</div><div style={{ fontSize:'12px', color:'#64748B', marginTop:'2px' }}>•••• •••• •••• 4521</div></div>
-          <span style={{ background:'#DCFCE7', color:'#16A34A', fontSize:'11px', fontWeight:700, padding:'4px 10px', borderRadius:'100px' }}>Primary</span>
+
+        {/* Quick amount buttons */}
+        <div style={{ display:'flex', gap:'8px', marginBottom:'20px' }}>
+          {['1000','2500','5000','8640'].map(amt => (
+            <button key={amt} onClick={()=>setAmount(amt)}
+              style={{ flex:1, padding:'8px 4px', background:amount===amt?'#0D9488':'#F1F5F9', border:'none', borderRadius:'10px', fontSize:'12px', fontWeight:700, color:amount===amt?'#fff':'#64748B', cursor:'pointer', fontFamily:'DM Sans, sans-serif' }}>
+              ₹{parseInt(amt).toLocaleString()}
+            </button>
+          ))}
         </div>
-        <div style={{ background:'#FEF3C7', borderRadius:'12px', padding:'12px 14px', marginBottom:'20px', fontSize:'13px', color:'#D97706', lineHeight:1.5 }}>⏱ Processing time: 1–2 business days</div>
-        <button onClick={confirm} style={{ width:'100%', padding:'16px', background:'#0D9488', border:'none', borderRadius:'14px', color:'#fff', fontSize:'16px', fontWeight:700, cursor:'pointer', fontFamily:'DM Sans, sans-serif', marginBottom:'10px' }}>Confirm Withdrawal →</button>
-        <button onClick={onClose} style={{ width:'100%', padding:'15px', background:'transparent', border:'1.5px solid #0D9488', borderRadius:'14px', color:'#0D9488', fontSize:'15px', fontWeight:700, cursor:'pointer', fontFamily:'DM Sans, sans-serif' }}>Cancel</button>
+
+        {/* Card selector */}
+        <label style={{ fontSize:'13px', fontWeight:700, color:'#0F172A', display:'block', marginBottom:'10px' }}>
+          Select Payment Card
+        </label>
+        <div style={{ fontSize:'11px', color:'#94A3B8', marginBottom:'10px', display:'flex', alignItems:'center', gap:'4px' }}>
+          <span>💳</span> Only saved cards are supported for withdrawals
+        </div>
+
+        <div style={{ display:'flex', flexDirection:'column', gap:'8px', marginBottom:'20px' }}>
+          {SAVED_CARDS.map(card => {
+            const isSelected = selectedCardId === card.id
+            const cardIcon   = card.type === 'visa' ? '💙' : '🔴'
+            return (
+              <div key={card.id} onClick={() => setSelectedCardId(card.id)}
+                style={{ display:'flex', alignItems:'center', gap:'13px', padding:'13px 16px', background:isSelected?'#EDFAF7':'#F8FAFC', border:`1.5px solid ${isSelected?'#0D9488':'#E2E8F0'}`, borderRadius:'14px', cursor:'pointer', transition:'all 0.15s' }}>
+                {/* Card icon */}
+                <div style={{ width:'44px', height:'30px', borderRadius:'8px', background:card.type==='visa'?'linear-gradient(135deg,#1a1a2e,#16213e)':'linear-gradient(135deg,#e65c00,#f9d423)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'14px', flexShrink:0 }}>
+                  {cardIcon}
+                </div>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:'14px', fontWeight:700, color:'#0F172A' }}>{card.label}</div>
+                  <div style={{ fontSize:'12px', color:'#64748B', marginTop:'2px' }}>
+                    {card.bank} · •••• {card.last4} · Exp {card.expiry}
+                  </div>
+                </div>
+                <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:'4px' }}>
+                  {card.primary && (
+                    <div style={{ background:'#EDFAF7', color:'#0D9488', fontSize:'9px', fontWeight:700, padding:'2px 8px', borderRadius:'100px' }}>PRIMARY</div>
+                  )}
+                  {/* Radio indicator */}
+                  <div style={{ width:'20px', height:'20px', borderRadius:'50%', border:`2px solid ${isSelected?'#0D9488':'#CBD5E1'}`, background:isSelected?'#0D9488':'transparent', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                    {isSelected && <div style={{ width:'8px', height:'8px', borderRadius:'50%', background:'#fff' }} />}
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Processing note */}
+        <div style={{ background:'#FEF3C7', borderRadius:'12px', padding:'12px 14px', marginBottom:'20px', display:'flex', gap:'8px', alignItems:'flex-start' }}>
+          <span style={{ fontSize:'16px', flexShrink:0 }}>⏱</span>
+          <div style={{ fontSize:'13px', color:'#D97706', lineHeight:1.5 }}>
+            Processing time: <strong>1–2 business days.</strong> Amount will reflect in your selected card's linked bank account.
+          </div>
+        </div>
+
+        {/* Summary */}
+        <div style={{ background:'#F8FAFC', borderRadius:'14px', padding:'14px 16px', marginBottom:'20px', border:'1px solid #E2E8F0' }}>
+          <div style={{ display:'flex', justifyContent:'space-between', marginBottom:'8px' }}>
+            <span style={{ fontSize:'13px', color:'#64748B' }}>Withdrawal Amount</span>
+            <span style={{ fontSize:'13px', fontWeight:700, color:'#0F172A' }}>₹{parseInt(amount||'0').toLocaleString()}</span>
+          </div>
+          <div style={{ display:'flex', justifyContent:'space-between', marginBottom:'8px' }}>
+            <span style={{ fontSize:'13px', color:'#64748B' }}>Processing Fee</span>
+            <span style={{ fontSize:'13px', fontWeight:700, color:'#16A34A' }}>FREE</span>
+          </div>
+          <div style={{ borderTop:'1px solid #E2E8F0', paddingTop:'8px', display:'flex', justifyContent:'space-between' }}>
+            <span style={{ fontSize:'14px', fontWeight:700, color:'#0F172A' }}>You Receive</span>
+            <span style={{ fontSize:'16px', fontWeight:900, color:'#0D9488' }}>₹{parseInt(amount||'0').toLocaleString()}</span>
+          </div>
+        </div>
+
+        <button onClick={confirm}
+          style={{ width:'100%', padding:'16px', background:'#0D9488', border:'none', borderRadius:'14px', color:'#fff', fontSize:'16px', fontWeight:700, cursor:'pointer', fontFamily:'DM Sans, sans-serif', marginBottom:'10px' }}>
+          Confirm Withdrawal →
+        </button>
+        <button onClick={onClose}
+          style={{ width:'100%', padding:'15px', background:'transparent', border:'1.5px solid #E2E8F0', borderRadius:'14px', color:'#64748B', fontSize:'15px', fontWeight:700, cursor:'pointer', fontFamily:'DM Sans, sans-serif' }}>
+          Cancel
+        </button>
       </div>
     </div>
   )
 }
 
 export default function EarningsPage() {
-  const [tab, setTab]               = useState<Tab>('daily')
+  const [tab,          setTab]          = useState<Tab>('daily')
   const [showWithdraw, setShowWithdraw] = useState(false)
-  const { showPopup, closePopup }   = useStore()
+  const { showPopup, closePopup } = useStore()
   const router = useRouter()
   const d = tabData[tab]
 
