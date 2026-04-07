@@ -118,12 +118,18 @@ export default function OTPPage() {
         setProfile(profile as any)
       }
 
-      showPopup({
-        type: 'success', title: 'Verified!',
-        body: 'Welcome back!\nYou are now signed in.',
-        icon: '',
-        actions: [{ label: 'Go to Home', variant: 'primary', fn: () => { closePopup(); router.replace('/home') } }],
-      })
+     // Check if profile is complete
+const userName = res.data.user?.name || ''
+const destination = userName.trim().length > 1 ? '/home' : '/details'
+
+showPopup({
+  type: 'success', title: 'Verified!',
+  body: userName.trim().length > 1
+    ? `Welcome back, ${userName.trim()}!\nYou are now signed in.`
+    : 'Welcome to CareBridge!\nLet\'s set up your profile.',
+  icon: '',
+  actions: [{ label: userName.trim().length > 1 ? 'Go to Home' : 'Set Up Profile', variant: 'primary', fn: () => { closePopup(); router.replace(destination) } }],
+})
 
     } catch (err: any) {
       const msg = err?.response?.data?.message || 'Invalid OTP. Please try again.'
