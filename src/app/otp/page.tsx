@@ -125,36 +125,15 @@ export default function OTPPage() {
         actions: [{ label: 'Go to Home', variant: 'primary', fn: () => { closePopup(); router.replace('/home') } }],
       })
 
-    } catch {
-      // ── Prototype fallback ──
-      const prevSession = typeof window !== 'undefined'
-        ? localStorage.getItem(SESSION_DEVICE_KEY)
-        : null
-
-      if (prevSession && prevSession !== deviceId) {
-        showPopup({
-          type: 'warning', title: 'Signed Out Elsewhere 📱',
-          body: 'You were signed in on another device.\nThat session has been ended.',
-          icon: '📱',
-          actions: [{
-            label: 'Continue', variant: 'primary', fn: () => {
-              closePopup()
-              registerSession(deviceId)
-              setToken('demo_token_' + deviceId.slice(0, 8))
-              router.replace('/home')
-            },
-          }],
-        })
-      } else {
-        registerSession(deviceId)
-        setToken('demo_token_' + deviceId.slice(0, 8))
-        showPopup({
-          type: 'success', title: 'Verified! ✅',
-          body: 'Welcome back, Rajan Kumar!\nYou are now signed in.',
-          icon: '✅',
-          actions: [{ label: 'Go to Home', variant: 'primary', fn: () => { closePopup(); router.replace('/home') } }],
-        })
-      }
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || 'Invalid OTP. Please try again.'
+      showPopup({
+        type: 'error',
+        title: 'Verification Failed',
+        body: msg,
+        icon: '',
+        actions: [{ label: 'Try Again', variant: 'primary', fn: closePopup }],
+      })
     } finally {
       setLoading(false)
     }
