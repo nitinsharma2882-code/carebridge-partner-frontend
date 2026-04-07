@@ -30,63 +30,65 @@ api.interceptors.response.use(
   }
 )
 
-// ── Auth ──────────────────────────────────────────────────
+// ── Auth ──────────────────────────────────────────────────────
 export const AuthAPI = {
   sendOTP: (phone: string) =>
-    api.post('/api/auth/send-otp', { phone, role: 'assistant' }),
+    api.post('/api/auth/send-otp', { phone }),
 
-  verifyOTP: (phone: string, otp: string) =>
-    api.post('/api/auth/verify-otp', { phone, otp, role: 'assistant' }),
+  // role='partner' is required by backend
+  // serviceType tells backend what kind of partner this is
+  verifyOTP: (phone: string, otp: string, serviceType = 'general') =>
+    api.post('/api/auth/verify-otp', {
+      phone,
+      otp,
+      role: 'partner',
+      serviceType,
+    }),
 }
 
-// ── Assistant ─────────────────────────────────────────────
-export const AssistantAPI = {
-  getProfile: () =>
-    api.get('/api/assistant/profile'),
+// ── Bookings ──────────────────────────────────────────────────
+export const BookingAPI = {
+  // Get requests visible to this partner (filtered by serviceType)
+  getRequests: () =>
+    api.get('/api/assistants/requests'),
 
-  updateProfile: (data: any) =>
-    api.patch('/api/assistant/profile', data),
+  // Get bookings assigned to this partner
+  getMyBookings: () =>
+    api.get('/api/bookings'),
 
-  toggleOnline: (isOnline: boolean) =>
-    api.post('/api/assistant/status', { isOnline }),
-
-  getEarnings: (period: 'daily' | 'weekly' | 'monthly') =>
-    api.get(`/api/assistant/earnings?period=${period}`),
-
-  getTransactions: () =>
-    api.get('/api/assistant/transactions'),
-
-  withdrawEarnings: (amount: number) =>
-    api.post('/api/assistant/withdraw', { amount }),
-
-  getNotifications: () =>
-    api.get('/api/assistant/notifications'),
-
-  markNotificationRead: (id: string) =>
-    api.patch(`/api/assistant/notifications/${id}/read`),
-
-  markAllNotificationsRead: () =>
-    api.patch('/api/assistant/notifications/read-all'),
-
-  acceptBooking: (id: string) =>
+  accept: (id: string) =>
     api.post(`/api/bookings/${id}/accept`),
 
-  rejectBooking: (id: string) =>
+  reject: (id: string) =>
     api.post(`/api/bookings/${id}/reject`),
 
-  completeBooking: (id: string) =>
+  start: (id: string) =>
+    api.post(`/api/bookings/${id}/start`),
+
+  complete: (id: string) =>
     api.post(`/api/bookings/${id}/complete`),
 
-  getEmergencyContacts: () =>
-    api.get('/api/assistant/emergency-contacts'),
+  escalate: (id: string, note = 'Partner cannot reach customer') =>
+    api.post(`/api/bookings/${id}/escalate`, { note }),
+}
 
-  addEmergencyContact: (data: {
-    name: string; phone: string; relation: string
-  }) => api.post('/api/assistant/emergency-contacts', data),
+// ── Assistant ─────────────────────────────────────────────────
+export const AssistantAPI = {
+  getProfile: () =>
+    api.get('/api/users/me'),
 
-  removeEmergencyContact: (id: string) =>
-    api.delete(`/api/assistant/emergency-contacts/${id}`),
+  updateProfile: (data: Record<string, unknown>) =>
+    api.put('/api/users/me', data),
 
-  triggerSOS: (lat: number, lng: number) =>
-    api.post('/api/sos/trigger', { lat, lng, role: 'assistant' }),
+  // Toggle online/offline — syncs to backend
+  setAvailability: (isOnline: boolean) =>
+    api.put('/api/assistants/availability', { isOnline }),
+
+  // Get earnings with daily/weekly/monthly breakdown
+  getEarnings: () =>
+    api.get('/api/assistants/earnings'),
+
+  // Request a withdrawal
+  withdraw: (amount: number, cardLast4?: string) =>
+    api.post('/api/assistants/withdraw', { amount, cardLast4 }),
 }

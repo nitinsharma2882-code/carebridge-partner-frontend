@@ -79,7 +79,7 @@ export default function OTPPage() {
   const verify = async (code?: string) => {
     const otp = code || digits.join('')
     if (otp.length < 6) {
-      showPopup({ type: 'warning', title: 'Incomplete OTP', body: 'Please enter all 6 digits.', icon: '⚠️', actions: [{ label: 'OK', variant: 'primary', fn: closePopup }] })
+      showPopup({ type: 'warning', title: 'Incomplete OTP', body: 'Please enter all 6 digits.', icon: '', actions: [{ label: 'OK', variant: 'primary', fn: closePopup }] })
       return
     }
 
@@ -87,17 +87,41 @@ export default function OTPPage() {
     const deviceId = getDeviceId()
 
     try {
-      // ── Real backend call (2 args — deviceId wired later) ──
-      const res = await AuthAPI.verifyOTP(phone, otp)
+      // Get serviceType from localStorage if set during onboarding
+      const serviceType = typeof window !== 'undefined'
+        ? (localStorage.getItem('cb_partner_serviceType') || 'general')
+        : 'general'
+
+      const res = await AuthAPI.verifyOTP(phone, otp, serviceType)
 
       registerSession(deviceId)
       setToken(res.data.token)
-      if (res.data.profile) setProfile(res.data.profile)
+
+      // Save user data to localStorage for quick access
+      if (res.data.user) {
+        localStorage.setItem('carebridge_user', JSON.stringify(res.data.user))
+      }
+      if (res.data.user?.name) {
+        const profile = {
+          id:          res.data.user._id,
+          name:        res.data.user.name,
+          phone:       res.data.user.phone,
+          email:       res.data.user.email || '',
+          city:        res.data.user.city  || '',
+          rating:      5.0,
+          totalTrips:  0,
+          experience:  '',
+          languages:   [],
+          isVerified:  false,
+          isOnline:    true,
+        }
+        setProfile(profile as any)
+      }
 
       showPopup({
-        type: 'success', title: 'Verified! ✅',
+        type: 'success', title: 'Verified!',
         body: 'Welcome back!\nYou are now signed in.',
-        icon: '✅',
+        icon: '',
         actions: [{ label: 'Go to Home', variant: 'primary', fn: () => { closePopup(); router.replace('/home') } }],
       })
 
