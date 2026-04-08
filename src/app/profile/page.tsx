@@ -127,7 +127,7 @@ function PersonalView({ onBack }: { onBack:()=>void }) {
     } catch {}
 
     // Then try API
-    fetch('/api/users/me')
+    fetch('https://carebridge-backend-dns0.onrender.com/api/users/me', { headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('cb_assistant_token') || ''), 'Content-Type': 'application/json' } })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (data?.success && data.user) {
@@ -159,7 +159,7 @@ function PersonalView({ onBack }: { onBack:()=>void }) {
 
     // Try API — if it fails, still show success (localStorage saved)
     try {
-      const res = await fetch('/api/users/me', {
+      const res = await fetch('https://carebridge-backend-dns0.onrender.com/api/users/me', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -262,7 +262,7 @@ export default function ProfilePage() {
       if (cached) setCurrentUser(JSON.parse(cached))
     } catch {}
     // Then API
-    fetch('/api/users/me')
+    fetch('https://carebridge-backend-dns0.onrender.com/api/users/me', { headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('cb_assistant_token') || ''), 'Content-Type': 'application/json' } })
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data?.success) setCurrentUser(data.user) })
       .catch(() => {})
