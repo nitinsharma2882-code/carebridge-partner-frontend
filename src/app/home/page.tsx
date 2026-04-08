@@ -382,33 +382,68 @@ export default function HomePage() {
 
           {/* New Request card */}
           {isOnline && incomingRequest && (
-            <div style={{ margin:'10px 14px 0', borderRadius:'18px', background:'#fff', border:'2px solid #0D9488', padding:'14px 16px', display:'flex', alignItems:'center', justifyContent:'space-between', cursor:'pointer', animation:'fadeIn 0.4s ease' }}>
-              <div style={{ display:'flex', alignItems:'center', gap:'12px' }}>
-                <div style={{ width:'42px', height:'42px', borderRadius:'13px', background:'#EDFAF7', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0D9488" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                </div>
-                <div>
-                  <div style={{ fontSize:'14px', fontWeight:700, color:'#0F172A' }}>New Request!</div>
-                  <div style={{ fontSize:'12px', color:'#64748B', marginTop:'2px' }}>
-                    {SERVICE_LABELS[(incomingRequest as any).serviceType] || 'Service'} · Rs. {(incomingRequest as any).fare || 0}
-                  </div>
-                  <div style={{ fontSize:'12px', color:'#475569', marginTop:'2px' }}>
-                    {(incomingRequest as any).pickupLocation || (incomingRequest as any).hospital || 'Location on accept'}
-                  </div>
-                </div>
-              </div>
-              <div style={{ display:'flex', flexDirection:'column', gap:'6px' }}>
-                <button onClick={handleAccept} disabled={accepting}
-                  style={{ background:'#0D9488', color:'#fff', border:'none', borderRadius:'10px', padding:'8px 14px', fontSize:'13px', fontWeight:700, cursor:'pointer', opacity:accepting?0.7:1 }}>
-                  {accepting ? '...' : 'Accept'}
-                </button>
-                <button onClick={handleReject}
-                  style={{ background:'#FEE2E2', color:'#DC2626', border:'none', borderRadius:'10px', padding:'8px 14px', fontSize:'13px', fontWeight:600, cursor:'pointer' }}>
-                  Reject
-                </button>
-              </div>
-            </div>
-          )}
+  <div style={{ margin:'10px 14px 0', borderRadius:'18px', background:'#fff', border:`2px solid ${(incomingRequest as any).serviceType === 'ambulance' ? '#DC2626' : '#0D9488'}`, padding:'14px 16px', animation:'fadeIn 0.4s ease' }}>
+
+    {/* Header row */}
+    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'10px' }}>
+      <div>
+        <div style={{ fontSize:'14px', fontWeight:700, color:'#0F172A' }}>
+          {(incomingRequest as any).serviceType === 'ambulance' ? 'Emergency Request!' : 'New Request!'}
+        </div>
+        <div style={{ fontSize:'12px', color:'#64748B', marginTop:'2px' }}>
+          {SERVICE_LABELS[(incomingRequest as any).serviceType] || 'Service'}
+        </div>
+      </div>
+      <div style={{ background:(incomingRequest as any).serviceType === 'ambulance' ? '#FEE2E2' : '#E0F7F5', color:(incomingRequest as any).serviceType === 'ambulance' ? '#DC2626' : '#0D9488', fontSize:'15px', fontWeight:800, borderRadius:'8px', padding:'4px 10px' }}>
+        Rs. {(incomingRequest as any).fare || 0}
+      </div>
+    </div>
+
+    {/* Ambulance specific info */}
+    {(incomingRequest as any).serviceType === 'ambulance' ? (
+      <>
+        <div style={{ background:'#FEF2F2', borderRadius:'10px', padding:'10px 12px', marginBottom:'10px' }}>
+          <div style={{ fontSize:'11px', fontWeight:700, color:'#991B1B', marginBottom:'4px', textTransform:'uppercase', letterSpacing:'0.5px' }}>Pickup</div>
+          <div style={{ fontSize:'13px', color:'#0F172A' }}>{(incomingRequest as any).pickupLocation || 'Location shared on accept'}</div>
+        </div>
+        <div style={{ background:'#F0FDF4', borderRadius:'10px', padding:'10px 12px', marginBottom:'10px' }}>
+          <div style={{ fontSize:'11px', fontWeight:700, color:'#14532D', marginBottom:'4px', textTransform:'uppercase', letterSpacing:'0.5px' }}>Destination</div>
+          <div style={{ fontSize:'13px', color:'#0F172A' }}>{(incomingRequest as any).destinationHospital || 'Hospital details on accept'}</div>
+        </div>
+        {(incomingRequest as any).medicalNotes && (
+          <div style={{ background:'#FEF3C7', borderRadius:'10px', padding:'10px 12px', marginBottom:'10px' }}>
+            <div style={{ fontSize:'11px', fontWeight:700, color:'#92400E', marginBottom:'4px', textTransform:'uppercase', letterSpacing:'0.5px' }}>Medical Notes</div>
+            <div style={{ fontSize:'13px', color:'#0F172A' }}>{(incomingRequest as any).medicalNotes}</div>
+          </div>
+        )}
+        {(incomingRequest as any).patientName && (
+          <div style={{ fontSize:'12px', color:'#64748B', marginBottom:'10px' }}>
+            Patient: {(incomingRequest as any).patientName} · {(incomingRequest as any).patientPhone}
+          </div>
+        )}
+      </>
+    ) : (
+      /* OPD / Standard info */
+      <div style={{ fontSize:'12px', color:'#475569', marginBottom:'10px' }}>
+        {(incomingRequest as any).hospital && <div>Hospital: {(incomingRequest as any).hospital}</div>}
+        {(incomingRequest as any).date && <div>Date: {(incomingRequest as any).date} at {(incomingRequest as any).time}</div>}
+        {!(incomingRequest as any).hospital && <div>Location: {(incomingRequest as any).pickupLocation || 'Shared on accept'}</div>}
+      </div>
+    )}
+
+    {/* Accept / Reject buttons */}
+    <div style={{ display:'flex', gap:'8px' }}>
+      <button onClick={handleReject}
+        style={{ flex:1, background:'#F1F5F9', color:'#475569', border:'none', borderRadius:'10px', padding:'12px', fontSize:'14px', fontWeight:600, cursor:'pointer' }}>
+        Reject
+      </button>
+      <button onClick={handleAccept} disabled={accepting}
+        style={{ flex:2, background:(incomingRequest as any).serviceType === 'ambulance' ? '#DC2626' : '#0D9488', color:'#fff', border:'none', borderRadius:'10px', padding:'12px', fontSize:'14px', fontWeight:700, cursor:'pointer', opacity:accepting?0.7:1 }}>
+        {accepting ? 'Accepting...' : (incomingRequest as any).serviceType === 'ambulance' ? 'Accept Emergency' : 'Accept'}
+      </button>
+    </div>
+  </div>
+)}
 
           {/* Nearby map */}
           <div style={{ margin:'12px 14px', borderRadius:'18px', overflow:'hidden', background:'#fff', border:'1px solid #E2E8F0' }}>
