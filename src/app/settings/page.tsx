@@ -130,7 +130,7 @@ export default function SettingsPage() {
           <div onClick={()=>router.push('/profile')} style={{ margin:'14px 14px 0', background:'#fff', borderRadius:'18px', padding:'14px 16px', display:'flex', alignItems:'center', gap:'13px', border:'1px solid #E2E8F0', cursor:'pointer' }}>
             <div style={{ width:'52px', height:'52px', borderRadius:'50%', background:'linear-gradient(135deg,#065f52,#0D9488)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'22px', flexShrink:0 }}>👨‍⚕️</div>
             <div style={{ flex:1 }}>
-              <div style={{ fontSize:'16px', fontWeight:800, color:'#0F172A' }}>Rajan Kumar</div>
+              <div style={{ fontSize:'16px', fontWeight:800, color:'#0F172A' }}>{typeof window !== 'undefined' ? (JSON.parse(localStorage.getItem('carebridge_user') || '{}').name || 'My Profile') : 'My Profile'}</div>
               <div style={{ fontSize:'13px', color:'#64748B', marginTop:'2px' }}>View & edit your profile →</div>
             </div>
             <div style={{ width:'22px', height:'22px', borderRadius:'50%', background:'#DCFCE7', display:'flex', alignItems:'center', justifyContent:'center' }}>
