@@ -173,8 +173,15 @@ export default function HomePage() {
         setIncomingRequest(null)
         showPopup({ type:'success', title:'Booking Accepted!', icon:'', body:'Head to the customer location. Tap Complete when done.', actions:[{ label:'OK', variant:'primary', fn:closePopup }] })
       }
-    } catch {
-      showPopup({ type:'error', title:'Could not accept', icon:'', body:'Please try again.', actions:[{ label:'OK', variant:'primary', fn:closePopup }] })
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || 'Could not accept this booking.'
+      // Remove stale request from UI
+      setIncomingRequest(null)
+      showPopup({
+        type:'error', title:'Booking Unavailable', icon:'',
+        body: msg,
+        actions:[{ label:'OK', variant:'primary', fn:closePopup }]
+      })
     } finally { setAccepting(false) }
   }
 
