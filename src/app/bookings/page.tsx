@@ -292,7 +292,7 @@ export default function BookingsPage() {
           </div>
         )}
 
-        <BottomNav active="Bookings" />
+        <BottomNav active="Home" />
         <PopupLayer />
       </div>
     </MobileFrame>
