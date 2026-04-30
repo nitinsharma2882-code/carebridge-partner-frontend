@@ -1,7 +1,8 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useStore } from '@/lib/store'
+import { api } from '@/lib/api'
 import MobileFrame from '@/components/MobileFrame'
 import BottomNav from '@/components/BottomNav'
 
@@ -57,7 +58,47 @@ function NotifItem({ n, onClick }: { n:Notif; onClick:()=>void }) {
 }
 
 export default function NotificationsPage() {
-  const [notifs, setNotifs] = useState<Notif[]>(INITIAL)
+  const [notifs,   setNotifs]   = useState<Notif[]>(INITIAL)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    api.get('/api/notifications')
+      .then(res => {
+        const data = res.data
+        if (data.success && data.notifications?.length > 0) {
+          const typeIcon: Record<string,{icon:string;bg:string}> = {
+            booking_completed: { icon:'✅', bg:'#EDFAF7' },
+            booking_accepted:  { icon:'📋', bg:'#EFF6FF' },
+            booking_cancelled: { icon:'❌', bg:'#FEE2E2' },
+            booking_escalated: { icon:'⚠️', bg:'#FEF3C7' },
+            booking_update:    { icon:'🔔', bg:'#F1F5F9' },
+          }
+          const mapped: Notif[] = data.notifications.map((n: any) => {
+            const { icon, bg } = typeIcon[n.type] || { icon:'🔔', bg:'#F1F5F9' }
+            const d = new Date(n.createdAt)
+            const now = new Date()
+            const diffMin = Math.floor((now.getTime() - d.getTime()) / 60000)
+            const timeStr = diffMin < 1 ? 'Just now'
+              : diffMin < 60 ? `${diffMin}m ago`
+              : diffMin < 1440 ? `${Math.floor(diffMin/60)}h ago`
+              : d.toLocaleDateString('en-IN', { day:'numeric', month:'short' })
+            return {
+              id:     String(n.id),
+              icon,
+              iconBg: bg,
+              title:  n.title,
+              body:   n.body,
+              time:   timeStr,
+              unread: n.read === false,
+              action: n.bookingId ? { label:'View Booking', href:'/bookings' } : undefined,
+            }
+          })
+          setNotifs(mapped)
+        }
+      })
+      .catch(() => {/* keep INITIAL mock data on error */})
+      .finally(() => setLoading(false))
+  }, [])
   const { showPopup, closePopup } = useStore()
   const router = useRouter()
   const unreadCount = notifs.filter(n => n.unread).length

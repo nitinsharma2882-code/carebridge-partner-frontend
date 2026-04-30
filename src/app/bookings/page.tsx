@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { BookingAPI } from '@/lib/api'
 import { useStore } from '@/lib/store'
 import BottomNav from '@/components/BottomNav'
 import MobileFrame from '@/components/MobileFrame'
@@ -76,15 +77,9 @@ export default function BookingsPage() {
     const token = localStorage.getItem('cb_assistant_token')
     if (!token) { router.replace('/login'); return }
 
-    fetch('https://carebridge-backend-dns0.onrender.com/api/bookings', {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      }
-    })
-      .then(r => r.json())
-      .then(data => {
-        if (data.success) setBookings(data.bookings || [])
+    BookingAPI.getMyBookings()
+      .then(res => {
+        if (res.data.success) setBookings(res.data.bookings || [])
       })
       .catch(() => {})
       .finally(() => setLoading(false))

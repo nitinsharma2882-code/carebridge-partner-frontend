@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useStore } from '@/lib/store'
 import MobileFrame from '@/components/MobileFrame'
+import { AssistantAPI } from '@/lib/api'
 
 function PopupLayer() {
   const { popup, closePopup } = useStore()
@@ -70,7 +71,6 @@ export default function DetailsPage() {
     if (!isValid) return
     setLoading(true)
     try {
-      const token = localStorage.getItem('cb_assistant_token')
       const body: Record<string,string> = {
         name:    name.trim(),
         email:   email.trim(),
@@ -78,15 +78,8 @@ export default function DetailsPage() {
       }
       if (isAmbulance) body.vehicleNo = vehicleNo.trim()
 
-      const res = await fetch('https://carebridge-backend-dns0.onrender.com/api/users/me', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(body),
-      })
-      const data = await res.json()
+      const res = await AssistantAPI.updateProfile(body)
+      const data = res.data
 
       if (data.success) {
         setProfile({

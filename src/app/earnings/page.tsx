@@ -1,7 +1,8 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useStore } from '@/lib/store'
+import { AssistantAPI } from '@/lib/api'
 import MobileFrame from '@/components/MobileFrame'
 import BottomNav from '@/components/BottomNav'
 
@@ -9,48 +10,42 @@ type Tab = 'daily' | 'weekly' | 'monthly'
 type TxStatus = 'paid' | 'pending' | 'processing'
 interface Tx { id:string; icon:string; type:string; customer:string; date:string; duration:string; amount:number; status:TxStatus }
 
-const tabData = {
-  daily:   { total:'₹1,240',  subtitle:'↑ 18% more than yesterday',          stats:[{v:'5',l:'Trips'},{v:'₹248',l:'Avg/trip'},{v:'4.9★',l:'Rating'}], bars:[{h:48,l:'Mon'},{h:65,l:'Tue'},{h:38,l:'Wed'},{h:82,l:'Thu'},{h:55,l:'Fri'},{h:92,l:'Sat'},{h:70,l:'Sun',active:true}], chartTitle:'Daily Earnings',   chartRange:'Mar 22–28', s1:'₹1,240', sl1:'Today',      s2:'₹248',   sl2:'Avg/day',   s3:'₹1,820',  sl3:'Best day' },
-  weekly:  { total:'₹8,640',  subtitle:'↑ 12% vs last week · 28 trips',      stats:[{v:'28',l:'Trips'},{v:'₹308',l:'Avg/trip'},{v:'4.9★',l:'Rating'}], bars:[{h:60,l:'W1'},{h:75,l:'W2'},{h:45,l:'W3'},{h:88,l:'W4'},{h:70,l:'W5',active:true},{h:55,l:'W6'},{h:82,l:'W7'}], chartTitle:'Weekly Earnings',  chartRange:'Mar 2026',  s1:'₹8,640', sl1:'This week',  s2:'₹7,200', sl2:'Last week', s3:'₹10,200', sl3:'Best week' },
-  monthly: { total:'₹31,200', subtitle:'↑ 8% vs last month · 104 trips',     stats:[{v:'104',l:'Trips'},{v:'₹300',l:'Avg/trip'},{v:'4.9★',l:'Rating'}], bars:[{h:50,l:'Jan'},{h:65,l:'Feb'},{h:80,l:'Mar',active:true},{h:55,l:'Apr'}],                                         chartTitle:'Monthly Earnings', chartRange:'2026',      s1:'₹31,200',sl1:'This month',s2:'₹8,200', sl2:'Avg/month',s3:'₹11,400', sl3:'Best month' },
-}
-
-const transactions: Tx[] = [
-  { id:'t1', icon:'🩺', type:'Elder Care',    customer:'Priya Kapoor', date:'Today, 9:15 AM',      duration:'2 hrs',   amount:320, status:'paid' },
-  { id:'t2', icon:'💉', type:'Nursing Care',  customer:'Arjun Mehta',  date:'Today, 7:00 AM',      duration:'3 hrs',   amount:480, status:'paid' },
-  { id:'t3', icon:'🦽', type:'Physio Assist', customer:'Sunita Devi',  date:'Yesterday, 3:30 PM',  duration:'1.5 hrs', amount:260, status:'pending' },
-  { id:'t4', icon:'🩺', type:'Elder Care',    customer:'Ramesh Gupta', date:'Yesterday, 10:00 AM', duration:'2.5 hrs', amount:380, status:'paid' },
-  { id:'t5', icon:'💊', type:'Med Reminder',  customer:'Kamla Devi',   date:'25 Mar, 11:00 AM',    duration:'1 hr',    amount:180, status:'processing' },
+interface SavedCard { id:string; label:string; bank:string; last4:string; expiry:string; type:'visa'|'mastercard'; primary:boolean }
+const SAVED_CARDS: SavedCard[] = [
+  { id:'c1', label:'HDFC Visa',      bank:'HDFC Bank', last4:'4242', expiry:'08/27', type:'visa',       primary:true  },
+  { id:'c2', label:'SBI Mastercard', bank:'SBI',       last4:'8810', expiry:'12/26', type:'mastercard', primary:false },
+  { id:'c3', label:'Axis Bank Visa', bank:'Axis Bank', last4:'3391', expiry:'03/28', type:'visa',       primary:false },
 ]
 const statusStyle: Record<TxStatus,{color:string;bg:string;label:string}> = {
   paid:       { color:'#16A34A', bg:'#DCFCE7', label:'● Paid' },
   pending:    { color:'#D97706', bg:'#FEF3C7', label:'○ Pending' },
   processing: { color:'#2563EB', bg:'#EFF6FF', label:'⟳ Processing' },
 }
+const fmt = (n:number) => `₹${n.toLocaleString('en-IN')}`
+const serviceIcon: Record<string,string> = { ambulance:'🚑', opd_assistant:'🩺', nursing:'💉', general:'🏥' }
 
-// ── Saved cards only (no UPI for withdrawals) ──────────
-interface SavedCard {
-  id:      string
-  label:   string
-  bank:    string
-  last4:   string
-  expiry:  string
-  type:    'visa' | 'mastercard'
-  primary: boolean
+function formatTxDate(iso:string) {
+  try {
+    const d = new Date(iso)
+    const now = new Date()
+    const diffDays = Math.floor((now.getTime() - d.getTime()) / 86400000)
+    const time = d.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' })
+    if (diffDays === 0) return `Today, ${time}`
+    if (diffDays === 1) return `Yesterday, ${time}`
+    return d.toLocaleDateString('en-IN', { day:'numeric', month:'short' }) + `, ${time}`
+  } catch { return iso }
 }
 
-const SAVED_CARDS: SavedCard[] = [
-  { id:'c1', label:'HDFC Visa',       bank:'HDFC Bank',  last4:'4242', expiry:'08/27', type:'visa',       primary:true },
-  { id:'c2', label:'SBI Mastercard',  bank:'SBI',        last4:'8810', expiry:'12/26', type:'mastercard', primary:false },
-  { id:'c3', label:'Axis Bank Visa',  bank:'Axis Bank',  last4:'3391', expiry:'03/28', type:'visa',       primary:false },
-]
+function Skeleton({ w='100%', h=16, r=8 }: { w?:string|number; h?:number; r?:number }) {
+  return <div style={{ width:w, height:h, borderRadius:r, background:'linear-gradient(90deg,#F1F5F9 25%,#E2E8F0 50%,#F1F5F9 75%)', backgroundSize:'200% 100%', animation:'shimmer 1.4s infinite' }} />
+}
 
 function PopupLayer() {
   const { popup, closePopup } = useStore()
   if (!popup) return null
-  const iconBg: Record<string,string> = { success:'#DCFCE7', warning:'#FEF3C7', error:'#FEE2E2', confirm:'#EDE9FE', info:'#EDFAF7' }
-  const btnBg:  Record<string,string> = { primary:'#0D9488', secondary:'#F1F5F9', danger:'#DC2626', warning:'#D97706' }
-  const btnClr: Record<string,string> = { primary:'#fff', secondary:'#475569', danger:'#fff', warning:'#fff' }
+  const iconBg:Record<string,string> = { success:'#DCFCE7', warning:'#FEF3C7', error:'#FEE2E2', confirm:'#EDE9FE', info:'#EDFAF7' }
+  const btnBg: Record<string,string> = { primary:'#0D9488', secondary:'#F1F5F9', danger:'#DC2626', warning:'#D97706' }
+  const btnClr:Record<string,string> = { primary:'#fff', secondary:'#475569', danger:'#fff', warning:'#fff' }
   return (
     <div onClick={e=>{ if(e.target===e.currentTarget) closePopup() }}
       style={{ position:'absolute', inset:0, zIndex:100, background:'rgba(15,23,42,0.65)', display:'flex', alignItems:'center', justifyContent:'center', padding:'20px' }}>
@@ -68,42 +63,57 @@ function PopupLayer() {
   )
 }
 
-// ── Withdraw Modal with card selector ─────────────────────
-function WithdrawModal({ open, onClose }: { open:boolean; onClose:()=>void }) {
-  const [amount,         setAmount]         = useState('8640')
+function WithdrawModal({ open, available, onClose }: { open:boolean; available:number; onClose:()=>void }) {
+  const [amount,         setAmount]         = useState(String(available || 0))
   const [selectedCardId, setSelectedCardId] = useState(SAVED_CARDS[0].id)
+  const [loading,        setLoading]        = useState(false)
   const { showPopup, closePopup } = useStore()
-
   const selectedCard = SAVED_CARDS.find(c => c.id === selectedCardId)!
 
-  const confirm = () => {
-    if (!amount || parseInt(amount) < 100) {
+  useEffect(() => { setAmount(String(available || 0)) }, [available])
+
+  const confirm = async () => {
+    const amt = parseInt(amount)
+    if (!amt || amt < 100) {
       showPopup({ type:'warning', title:'Invalid Amount', body:'Minimum withdrawal amount is ₹100.', icon:'⚠️', actions:[{ label:'OK', variant:'primary', fn:closePopup }] })
       return
     }
-    onClose()
-    setTimeout(() => {
-      showPopup({
-        type:'success', title:'Withdrawal Initiated! ✅',
-        body:`Amount: ₹${amount}\nCard: ${selectedCard.label} •••• ${selectedCard.last4}\n\nFunds arrive in 1–2 business days.`,
-        icon:'✅',
-        actions:[{ label:'Done', variant:'primary', fn:closePopup }],
-      })
-    }, 300)
+    if (amt > available) {
+      showPopup({ type:'warning', title:'Insufficient Balance', body:`You only have ${fmt(available)} available.`, icon:'⚠️', actions:[{ label:'OK', variant:'primary', fn:closePopup }] })
+      return
+    }
+    setLoading(true)
+    try {
+      await AssistantAPI.withdraw(amt, selectedCard.last4)
+      onClose()
+      setTimeout(() => {
+        showPopup({
+          type:'success', title:'Withdrawal Initiated! ✅',
+          body:`Amount: ${fmt(amt)}\nCard: ${selectedCard.label} •••• ${selectedCard.last4}\n\nFunds arrive in 1–2 business days.`,
+          icon:'✅', actions:[{ label:'Done', variant:'primary', fn:closePopup }],
+        })
+      }, 300)
+    } catch (err:any) {
+      const msg = err?.response?.data?.message || 'Withdrawal failed. Please try again.'
+      showPopup({ type:'error', title:'Withdrawal Failed', body:msg, icon:'❌', actions:[{ label:'OK', variant:'primary', fn:closePopup }] })
+    } finally { setLoading(false) }
   }
 
   if (!open) return null
+  const quickAmounts = [500, 1000, 2500, available].filter((v,i,a) => v > 0 && a.indexOf(v) === i).slice(0,4)
+
   return (
     <div onClick={e=>{ if(e.target===e.currentTarget) onClose() }}
       style={{ position:'absolute', inset:0, zIndex:200, background:'rgba(15,23,42,0.55)', display:'flex', flexDirection:'column', justifyContent:'flex-end' }}>
       <div style={{ background:'#fff', borderRadius:'28px 28px 0 0', padding:'0 20px 36px', maxHeight:'90%', overflowY:'auto' }}>
         <div style={{ width:'36px', height:'4px', background:'#E2E8F0', borderRadius:'2px', margin:'14px auto 20px' }} />
         <h3 style={{ fontSize:'20px', fontWeight:800, color:'#0F172A', letterSpacing:'-0.4px', marginBottom:'4px' }}>Withdraw Earnings</h3>
-        <p style={{ fontSize:'13px', color:'#64748B', marginBottom:'20px', lineHeight:1.55 }}>Select a saved card to receive your funds.</p>
+        <p style={{ fontSize:'13px', color:'#64748B', marginBottom:'20px', lineHeight:1.55 }}>
+          Available: <strong style={{ color:'#0D9488' }}>{fmt(available)}</strong>. Select a saved card to receive your funds.
+        </p>
 
-        {/* Amount */}
         <label style={{ fontSize:'13px', fontWeight:700, color:'#0F172A', display:'block', marginBottom:'8px' }}>Withdrawal Amount</label>
-        <div style={{ position:'relative', marginBottom:'20px' }}>
+        <div style={{ position:'relative', marginBottom:'12px' }}>
           <span style={{ position:'absolute', left:'14px', top:'50%', transform:'translateY(-50%)', fontSize:'16px', fontWeight:800, color:'#64748B' }}>₹</span>
           <input type="number" value={amount} onChange={e=>setAmount(e.target.value)}
             style={{ width:'100%', paddingLeft:'30px', paddingRight:'14px', paddingTop:'14px', paddingBottom:'14px', background:'#F8FAFC', border:'1.5px solid #E2E8F0', borderRadius:'14px', fontSize:'18px', fontWeight:700, color:'#0F172A', outline:'none', fontFamily:'DM Sans, sans-serif', boxSizing:'border-box' }}
@@ -112,46 +122,32 @@ function WithdrawModal({ open, onClose }: { open:boolean; onClose:()=>void }) {
           />
         </div>
 
-        {/* Quick amount buttons */}
         <div style={{ display:'flex', gap:'8px', marginBottom:'20px' }}>
-          {['1000','2500','5000','8640'].map(amt => (
-            <button key={amt} onClick={()=>setAmount(amt)}
-              style={{ flex:1, padding:'8px 4px', background:amount===amt?'#0D9488':'#F1F5F9', border:'none', borderRadius:'10px', fontSize:'12px', fontWeight:700, color:amount===amt?'#fff':'#64748B', cursor:'pointer', fontFamily:'DM Sans, sans-serif' }}>
-              ₹{parseInt(amt).toLocaleString()}
+          {quickAmounts.map(amt => (
+            <button key={amt} onClick={()=>setAmount(String(amt))}
+              style={{ flex:1, padding:'8px 4px', background:parseInt(amount)===amt?'#0D9488':'#F1F5F9', border:'none', borderRadius:'10px', fontSize:'12px', fontWeight:700, color:parseInt(amount)===amt?'#fff':'#64748B', cursor:'pointer', fontFamily:'DM Sans, sans-serif' }}>
+              {fmt(amt)}
             </button>
           ))}
         </div>
 
-        {/* Card selector */}
-        <label style={{ fontSize:'13px', fontWeight:700, color:'#0F172A', display:'block', marginBottom:'10px' }}>
-          Select Payment Card
-        </label>
+        <label style={{ fontSize:'13px', fontWeight:700, color:'#0F172A', display:'block', marginBottom:'10px' }}>Select Payment Card</label>
         <div style={{ fontSize:'11px', color:'#94A3B8', marginBottom:'10px', display:'flex', alignItems:'center', gap:'4px' }}>
           <span>💳</span> Only saved cards are supported for withdrawals
         </div>
-
         <div style={{ display:'flex', flexDirection:'column', gap:'8px', marginBottom:'20px' }}>
           {SAVED_CARDS.map(card => {
             const isSelected = selectedCardId === card.id
-            const cardIcon   = card.type === 'visa' ? '💙' : '🔴'
             return (
               <div key={card.id} onClick={() => setSelectedCardId(card.id)}
-                style={{ display:'flex', alignItems:'center', gap:'13px', padding:'13px 16px', background:isSelected?'#EDFAF7':'#F8FAFC', border:`1.5px solid ${isSelected?'#0D9488':'#E2E8F0'}`, borderRadius:'14px', cursor:'pointer', transition:'all 0.15s' }}>
-                {/* Card icon */}
-                <div style={{ width:'44px', height:'30px', borderRadius:'8px', background:card.type==='visa'?'linear-gradient(135deg,#1a1a2e,#16213e)':'linear-gradient(135deg,#e65c00,#f9d423)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'14px', flexShrink:0 }}>
-                  {cardIcon}
-                </div>
+                style={{ display:'flex', alignItems:'center', gap:'13px', padding:'13px 16px', background:isSelected?'#EDFAF7':'#F8FAFC', border:`1.5px solid ${isSelected?'#0D9488':'#E2E8F0'}`, borderRadius:'14px', cursor:'pointer' }}>
+                <div style={{ width:'44px', height:'30px', borderRadius:'8px', background:card.type==='visa'?'linear-gradient(135deg,#1a1a2e,#16213e)':'linear-gradient(135deg,#e65c00,#f9d423)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'14px', flexShrink:0 }}>{card.type==='visa'?'💙':'🔴'}</div>
                 <div style={{ flex:1 }}>
                   <div style={{ fontSize:'14px', fontWeight:700, color:'#0F172A' }}>{card.label}</div>
-                  <div style={{ fontSize:'12px', color:'#64748B', marginTop:'2px' }}>
-                    {card.bank} · •••• {card.last4} · Exp {card.expiry}
-                  </div>
+                  <div style={{ fontSize:'12px', color:'#64748B', marginTop:'2px' }}>{card.bank} · •••• {card.last4} · Exp {card.expiry}</div>
                 </div>
                 <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:'4px' }}>
-                  {card.primary && (
-                    <div style={{ background:'#EDFAF7', color:'#0D9488', fontSize:'9px', fontWeight:700, padding:'2px 8px', borderRadius:'100px' }}>PRIMARY</div>
-                  )}
-                  {/* Radio indicator */}
+                  {card.primary && <div style={{ background:'#EDFAF7', color:'#0D9488', fontSize:'9px', fontWeight:700, padding:'2px 8px', borderRadius:'100px' }}>PRIMARY</div>}
                   <div style={{ width:'20px', height:'20px', borderRadius:'50%', border:`2px solid ${isSelected?'#0D9488':'#CBD5E1'}`, background:isSelected?'#0D9488':'transparent', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
                     {isSelected && <div style={{ width:'8px', height:'8px', borderRadius:'50%', background:'#fff' }} />}
                   </div>
@@ -161,19 +157,15 @@ function WithdrawModal({ open, onClose }: { open:boolean; onClose:()=>void }) {
           })}
         </div>
 
-        {/* Processing note */}
-        <div style={{ background:'#FEF3C7', borderRadius:'12px', padding:'12px 14px', marginBottom:'20px', display:'flex', gap:'8px', alignItems:'flex-start' }}>
+        <div style={{ background:'#FEF3C7', borderRadius:'12px', padding:'12px 14px', marginBottom:'20px', display:'flex', gap:'8px' }}>
           <span style={{ fontSize:'16px', flexShrink:0 }}>⏱</span>
-          <div style={{ fontSize:'13px', color:'#D97706', lineHeight:1.5 }}>
-            Processing time: <strong>1–2 business days.</strong> Amount will reflect in your selected card's linked bank account.
-          </div>
+          <div style={{ fontSize:'13px', color:'#D97706', lineHeight:1.5 }}>Processing time: <strong>1–2 business days.</strong> Amount will reflect in your selected card's linked bank account.</div>
         </div>
 
-        {/* Summary */}
         <div style={{ background:'#F8FAFC', borderRadius:'14px', padding:'14px 16px', marginBottom:'20px', border:'1px solid #E2E8F0' }}>
           <div style={{ display:'flex', justifyContent:'space-between', marginBottom:'8px' }}>
             <span style={{ fontSize:'13px', color:'#64748B' }}>Withdrawal Amount</span>
-            <span style={{ fontSize:'13px', fontWeight:700, color:'#0F172A' }}>₹{parseInt(amount||'0').toLocaleString()}</span>
+            <span style={{ fontSize:'13px', fontWeight:700, color:'#0F172A' }}>{fmt(parseInt(amount||'0'))}</span>
           </div>
           <div style={{ display:'flex', justifyContent:'space-between', marginBottom:'8px' }}>
             <span style={{ fontSize:'13px', color:'#64748B' }}>Processing Fee</span>
@@ -181,15 +173,15 @@ function WithdrawModal({ open, onClose }: { open:boolean; onClose:()=>void }) {
           </div>
           <div style={{ borderTop:'1px solid #E2E8F0', paddingTop:'8px', display:'flex', justifyContent:'space-between' }}>
             <span style={{ fontSize:'14px', fontWeight:700, color:'#0F172A' }}>You Receive</span>
-            <span style={{ fontSize:'16px', fontWeight:900, color:'#0D9488' }}>₹{parseInt(amount||'0').toLocaleString()}</span>
+            <span style={{ fontSize:'16px', fontWeight:900, color:'#0D9488' }}>{fmt(parseInt(amount||'0'))}</span>
           </div>
         </div>
 
-        <button onClick={confirm}
-          style={{ width:'100%', padding:'16px', background:'#0D9488', border:'none', borderRadius:'14px', color:'#fff', fontSize:'16px', fontWeight:700, cursor:'pointer', fontFamily:'DM Sans, sans-serif', marginBottom:'10px' }}>
-          Confirm Withdrawal →
+        <button onClick={confirm} disabled={loading}
+          style={{ width:'100%', padding:'16px', background:loading?'#94A3B8':'#0D9488', border:'none', borderRadius:'14px', color:'#fff', fontSize:'16px', fontWeight:700, cursor:loading?'not-allowed':'pointer', fontFamily:'DM Sans, sans-serif', marginBottom:'10px' }}>
+          {loading ? 'Processing…' : 'Confirm Withdrawal →'}
         </button>
-        <button onClick={onClose}
+        <button onClick={onClose} disabled={loading}
           style={{ width:'100%', padding:'15px', background:'transparent', border:'1.5px solid #E2E8F0', borderRadius:'14px', color:'#64748B', fontSize:'15px', fontWeight:700, cursor:'pointer', fontFamily:'DM Sans, sans-serif' }}>
           Cancel
         </button>
@@ -201,12 +193,69 @@ function WithdrawModal({ open, onClose }: { open:boolean; onClose:()=>void }) {
 export default function EarningsPage() {
   const [tab,          setTab]          = useState<Tab>('daily')
   const [showWithdraw, setShowWithdraw] = useState(false)
+  const [loading,      setLoading]      = useState(true)
+  const [earnings,     setEarnings]     = useState<any>(null)
+  const [transactions, setTransactions] = useState<Tx[]>([])
+  const [available,    setAvailable]    = useState(0)
   const { showPopup, closePopup } = useStore()
   const router = useRouter()
-  const d = tabData[tab]
+
+  useEffect(() => {
+    AssistantAPI.getEarnings()
+      .then(res => {
+        const data = res.data
+        if (data.success) {
+          setEarnings(data)
+          setAvailable(data.available ?? data.availableBalance ?? 0)
+          const rawTx: any[] = data.transactions || data.earnings || []
+          const normalised: Tx[] = rawTx.map((t:any, i:number) => ({
+            id:       t._id || t.id || String(i),
+            icon:     serviceIcon[t.serviceType || t.bookingId?.serviceType] || '🏥',
+            type:     t.serviceType === 'ambulance' ? 'Ambulance' : t.serviceType === 'opd_assistant' ? 'OPD Assist' : 'Healthcare',
+            customer: t.bookingId?.userId?.name || t.customerName || 'Customer',
+            date:     formatTxDate(t.createdAt || t.date || ''),
+            duration: t.duration || '—',
+            amount:   t.amount || 0,
+            status:   (t.status === 'completed' ? 'paid' : t.status) as TxStatus,
+          }))
+          setTransactions(normalised)
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [])
+
+  const build = (period: Tab) => {
+    if (!earnings) return { total:'₹0', subtitle:'No data yet', stats:[{v:'0',l:'Trips'},{v:'₹0',l:'Avg/trip'},{v:'—',l:'Rating'}], bars:[{h:20,l:'—',active:true}], chartTitle:'Earnings', chartRange:'', s1:'₹0', sl1:'Total', s2:'₹0', sl2:'Avg', s3:'₹0', sl3:'Best' }
+    const now = new Date()
+    const periodMap: Record<Tab,{key:string;title:string;range:string}> = {
+      daily:   { key:'today', title:'Daily Earnings',   range: now.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}) },
+      weekly:  { key:'week',  title:'Weekly Earnings',  range: now.toLocaleDateString('en-IN',{month:'short',year:'numeric'}) },
+      monthly: { key:'month', title:'Monthly Earnings', range: String(now.getFullYear()) },
+    }
+    const { key, title, range } = periodMap[period]
+    const p = earnings[key] || {}
+    const total = p.total ?? 0
+    const trips = p.trips ?? 0
+    const avg   = trips > 0 ? Math.round(total / trips) : 0
+    const rating = p.rating ?? earnings.rating ?? '—'
+    const best   = p.best ?? total
+    const lastPeriod = p.lastPeriod ?? p.lastWeek ?? p.lastMonth ?? 0
+    const pctChange  = lastPeriod > 0 ? Math.round(((total - lastPeriod) / lastPeriod) * 100) : 0
+    const subtitle   = trips > 0
+      ? `${pctChange >= 0 ? '↑' : '↓'} ${Math.abs(pctChange)}% vs last ${period === 'daily' ? 'day' : period === 'weekly' ? 'week' : 'month'} · ${trips} trip${trips !== 1 ? 's' : ''}`
+      : 'No trips yet this period'
+    const days = earnings.dailyBreakdown || p.breakdown || []
+    const barData = days.length > 0
+      ? (() => { const max = Math.max(...days.map((d:any)=>d.amount||0), 1); return days.map((d:any,i:number)=>({h:Math.max(8,Math.round((d.amount/max)*90)),l:d.label||String(i+1),active:i===days.length-1})) })()
+      : [{ h: total > 0 ? 80 : 20, l: period==='daily'?'Today':period==='weekly'?'Wk':'Mo', active:true }]
+    return { total:fmt(total), subtitle, stats:[{v:String(trips),l:'Trips'},{v:fmt(avg),l:'Avg/trip'},{v:`${rating}★`,l:'Rating'}], bars:barData, chartTitle:title, chartRange:range, s1:fmt(total), sl1:period==='daily'?'Today':period==='weekly'?'This week':'This month', s2:fmt(avg), sl2:'Avg/trip', s3:fmt(best), sl3:`Best ${period==='daily'?'day':period==='weekly'?'week':'month'}` }
+  }
+
+  const d = build(tab)
 
   const openTx = (tx: Tx) => {
-    showPopup({ type:'info', title:`${tx.type} — ₹${tx.amount}`, body:`Customer: ${tx.customer}\nDate: ${tx.date}\nDuration: ${tx.duration}\nRef: CB-${tx.id.toUpperCase()}`, icon:tx.icon,
+    showPopup({ type:'info', title:`${tx.type} — ₹${tx.amount}`, body:`Customer: ${tx.customer}\nDate: ${tx.date}\nDuration: ${tx.duration}\nRef: CB-${tx.id.toUpperCase().slice(-8)}`, icon:tx.icon,
       actions:[
         { label:'Download Receipt', variant:'primary',   fn:() => { closePopup(); showPopup({ type:'success', title:'Receipt downloaded ✓', body:'', icon:'✅', actions:[{ label:'OK', variant:'primary', fn:closePopup }] }) } },
         { label:'Close',            variant:'secondary', fn:closePopup },
@@ -216,12 +265,11 @@ export default function EarningsPage() {
 
   return (
     <MobileFrame>
+      <style>{`@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
       <div style={{ position:'absolute', inset:0, display:'flex', flexDirection:'column' }}>
-
         <div style={{ height:'50px', padding:'14px 20px 0', display:'flex', alignItems:'center', justifyContent:'space-between', background:'#fff', flexShrink:0 }}>
           <span style={{ fontSize:'12px', fontWeight:700, color:'#0F172A' }}>9:41</span>
         </div>
-
         <div style={{ height:'56px', background:'#fff', display:'flex', alignItems:'center', padding:'0 16px', gap:'10px', borderBottom:'1px solid #E2E8F0', flexShrink:0 }}>
           <button onClick={() => router.back()} style={{ width:'38px', height:'38px', borderRadius:'50%', background:'#F1F5F9', border:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><polyline points="15 18 9 12 15 6" stroke="#334155" strokeWidth="2.5" strokeLinecap="round"/></svg>
@@ -236,10 +284,13 @@ export default function EarningsPage() {
           <div style={{ margin:'14px 14px 12px', borderRadius:'22px', padding:'20px', background:'linear-gradient(135deg,#065f52,#0D9488,#14b8a6)', color:'#fff', position:'relative', overflow:'hidden' }}>
             <div style={{ position:'absolute', top:'-40px', right:'-40px', width:'150px', height:'150px', borderRadius:'50%', background:'rgba(255,255,255,0.07)' }} />
             <div style={{ fontSize:'11px', fontWeight:700, opacity:0.75, letterSpacing:'0.8px', textTransform:'uppercase' }}>{tab==='daily'?'Today':tab==='weekly'?'This Week':'This Month'}</div>
-            <div style={{ fontSize:'40px', fontWeight:900, letterSpacing:'-2px', margin:'4px 0 3px' }}>{d.total}</div>
-            <div style={{ fontSize:'13px', opacity:0.75, marginBottom:'16px' }}>{d.subtitle}</div>
+            {loading ? <div style={{ margin:'8px 0 14px' }}><Skeleton h={44} r={8} /></div> : <div style={{ fontSize:'40px', fontWeight:900, letterSpacing:'-2px', margin:'4px 0 3px' }}>{d.total}</div>}
+            <div style={{ fontSize:'13px', opacity:0.75, marginBottom:'16px' }}>{loading ? '...' : d.subtitle}</div>
             <div style={{ display:'flex', gap:'8px' }}>
-              {d.stats.map(s => <div key={s.l} style={{ flex:1, background:'rgba(255,255,255,0.15)', borderRadius:'12px', padding:'10px 12px' }}><div style={{ fontSize:'17px', fontWeight:800 }}>{s.v}</div><div style={{ fontSize:'10px', opacity:0.7, fontWeight:600, marginTop:'2px' }}>{s.l}</div></div>)}
+              {loading
+                ? [0,1,2].map(i => <div key={i} style={{ flex:1, background:'rgba(255,255,255,0.15)', borderRadius:'12px', padding:'10px 12px' }}><Skeleton h={17} w="60%" /><Skeleton h={10} w="80%" /></div>)
+                : d.stats.map(s => <div key={s.l} style={{ flex:1, background:'rgba(255,255,255,0.15)', borderRadius:'12px', padding:'10px 12px' }}><div style={{ fontSize:'17px', fontWeight:800 }}>{s.v}</div><div style={{ fontSize:'10px', opacity:0.7, fontWeight:600, marginTop:'2px' }}>{s.l}</div></div>)
+              }
             </div>
           </div>
 
@@ -267,7 +318,7 @@ export default function EarningsPage() {
             <div style={{ display:'flex', justifyContent:'space-around', paddingTop:'12px', borderTop:'1px solid #F1F5F9' }}>
               {[{v:d.s1,l:d.sl1},{v:d.s2,l:d.sl2},{v:d.s3,l:d.sl3}].map(s => (
                 <div key={s.l} style={{ textAlign:'center' }}>
-                  <div style={{ fontSize:'18px', fontWeight:800, color:'#0F172A' }}>{s.v}</div>
+                  <div style={{ fontSize:'18px', fontWeight:800, color:'#0F172A' }}>{loading ? '—' : s.v}</div>
                   <div style={{ fontSize:'11px', color:'#94A3B8', marginTop:'2px' }}>{s.l}</div>
                 </div>
               ))}
@@ -275,16 +326,38 @@ export default function EarningsPage() {
           </div>
 
           <div style={{ margin:'0 14px 12px', background:'#EDFAF7', borderRadius:'16px', padding:'14px 16px', display:'flex', alignItems:'center', justifyContent:'space-between', border:'1px solid #CCFBF1' }}>
-            <div><div style={{ fontSize:'13px', fontWeight:700, color:'#0F172A' }}>Pending Withdrawal</div><div style={{ fontSize:'12px', color:'#64748B', marginTop:'2px' }}>Available to withdraw now</div></div>
+            <div>
+              <div style={{ fontSize:'13px', fontWeight:700, color:'#0F172A' }}>Available to Withdraw</div>
+              <div style={{ fontSize:'12px', color:'#64748B', marginTop:'2px' }}>Ready to transfer to your card</div>
+            </div>
             <div style={{ textAlign:'right' }}>
-              <div style={{ fontSize:'20px', fontWeight:900, color:'#0D9488' }}>₹8,640</div>
+              <div style={{ fontSize:'20px', fontWeight:900, color:'#0D9488' }}>{loading ? '…' : fmt(available)}</div>
               <button onClick={() => setShowWithdraw(true)} style={{ background:'#0D9488', border:'none', borderRadius:'8px', color:'#fff', fontSize:'11px', fontWeight:700, padding:'4px 10px', cursor:'pointer', marginTop:'4px', fontFamily:'DM Sans, sans-serif' }}>Withdraw →</button>
             </div>
           </div>
 
           <div style={{ fontSize:'11px', fontWeight:700, color:'#94A3B8', textTransform:'uppercase', letterSpacing:'0.6px', padding:'4px 16px 8px' }}>Payment History</div>
-          {transactions.map(tx => {
-            const s = statusStyle[tx.status]
+
+          {loading && [0,1,2,3].map(i => (
+            <div key={i} style={{ margin:'0 14px 8px', background:'#fff', borderRadius:'16px', padding:'14px', display:'flex', alignItems:'center', justifyContent:'space-between', border:'1px solid #E2E8F0' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:'12px' }}>
+                <div style={{ width:'40px', height:'40px', borderRadius:'12px', background:'#F1F5F9' }} />
+                <div><Skeleton h={14} w={120} /><div style={{ marginTop:6 }}><Skeleton h={12} w={90} /></div></div>
+              </div>
+              <div style={{ textAlign:'right' }}><Skeleton h={16} w={60} /><div style={{ marginTop:4 }}><Skeleton h={11} w={50} /></div></div>
+            </div>
+          ))}
+
+          {!loading && transactions.length === 0 && (
+            <div style={{ textAlign:'center', padding:'30px 20px', color:'#94A3B8' }}>
+              <div style={{ fontSize:'36px', marginBottom:'8px' }}>💸</div>
+              <div style={{ fontSize:'14px', fontWeight:600 }}>No transactions yet</div>
+              <div style={{ fontSize:'12px', marginTop:'4px' }}>Complete trips to see your earnings here</div>
+            </div>
+          )}
+
+          {!loading && transactions.map(tx => {
+            const s = statusStyle[tx.status] || statusStyle.pending
             return (
               <div key={tx.id} onClick={() => openTx(tx)} style={{ margin:'0 14px 8px', background:'#fff', borderRadius:'16px', padding:'14px', display:'flex', alignItems:'center', justifyContent:'space-between', border:'1px solid #E2E8F0', cursor:'pointer' }}>
                 <div style={{ display:'flex', alignItems:'center', gap:'12px' }}>
@@ -295,7 +368,7 @@ export default function EarningsPage() {
                   </div>
                 </div>
                 <div style={{ textAlign:'right' }}>
-                  <div style={{ fontSize:'16px', fontWeight:800, color:tx.status==='paid'?'#16A34A':tx.status==='pending'?'#D97706':'#2563EB' }}>+₹{tx.amount}</div>
+                  <div style={{ fontSize:'16px', fontWeight:800, color:tx.status==='paid'?'#16A34A':tx.status==='pending'?'#D97706':'#2563EB' }}>+{fmt(tx.amount)}</div>
                   <div style={{ fontSize:'11px', fontWeight:700, color:s.color, marginTop:'2px' }}>{s.label}</div>
                 </div>
               </div>
@@ -303,14 +376,16 @@ export default function EarningsPage() {
           })}
 
           <div style={{ padding:'8px 14px 8px' }}>
-            <button onClick={() => setShowWithdraw(true)} style={{ width:'100%', padding:'16px', background:'#0D9488', border:'none', borderRadius:'14px', color:'#fff', fontSize:'16px', fontWeight:700, cursor:'pointer', fontFamily:'DM Sans, sans-serif' }}>Withdraw ₹8,640 →</button>
+            <button onClick={() => setShowWithdraw(true)} style={{ width:'100%', padding:'16px', background:'#0D9488', border:'none', borderRadius:'14px', color:'#fff', fontSize:'16px', fontWeight:700, cursor:'pointer', fontFamily:'DM Sans, sans-serif' }}>
+              {loading ? 'Loading…' : `Withdraw ${fmt(available)} →`}
+            </button>
           </div>
         </div>
       </div>
 
       <BottomNav active="Earnings" />
       <PopupLayer />
-      <WithdrawModal open={showWithdraw} onClose={() => setShowWithdraw(false)} />
+      <WithdrawModal open={showWithdraw} available={available} onClose={() => setShowWithdraw(false)} />
     </MobileFrame>
   )
 }

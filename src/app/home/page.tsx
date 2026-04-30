@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useStore } from '@/lib/store'
 import { BookingAPI, AssistantAPI } from '@/lib/api'
+import { io, Socket } from 'socket.io-client'
 import BottomNav from '@/components/BottomNav'
 import MobileFrame from '@/components/MobileFrame'
 import { SponsoredSection } from '@/components/SponsoredSection'
@@ -85,10 +86,12 @@ export default function HomePage() {
   const [incomingRequest, setIncomingRequest] = useState<Record<string,unknown>|null>(null)
   const [activeBooking,   setActiveBooking]   = useState<Record<string,unknown>|null>(null)
   const [accepting,       setAccepting]       = useState(false)
+  const [bookingStarted,  setBookingStarted]  = useState(false)
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const pollRef   = useRef<ReturnType<typeof setInterval>|null>(null)
   const timerRef  = useRef<ReturnType<typeof setTimeout>|null>(null)
+  const socketRef = useRef<Socket|null>(null)
 
   // Restore scroll position
   useEffect(() => {
@@ -160,6 +163,44 @@ export default function HomePage() {
       if (timerRef.current) clearTimeout(timerRef.current)
     }
   }, [isOnline])
+  // ── Socket.IO: real-time booking notifications ──────────────
+  useEffect(() => {
+    if (!isOnline) {
+      socketRef.current?.disconnect()
+      return
+    }
+
+    const BASE = process.env.NEXT_PUBLIC_API_URL || 'https://carebridge-backend-dns0.onrender.com'
+    const token = typeof window !== 'undefined' ? localStorage.getItem('cb_assistant_token') : null
+
+    const socket = io(BASE, {
+      auth:          { token },
+      transports:    ['websocket', 'polling'],
+      reconnectionAttempts: 5,
+    })
+    socketRef.current = socket
+
+    // New booking available for this partner
+    socket.on('new_booking', (booking: Record<string, unknown>) => {
+      setIncomingRequest(prev => {
+        // Don't override an existing request the partner hasn't actioned yet
+        if (prev) return prev
+        if (timerRef.current) clearTimeout(timerRef.current)
+        timerRef.current = setTimeout(() => setIncomingRequest(null), 30000)
+        return booking
+      })
+    })
+
+    // Booking was cancelled by consumer while partner was deciding
+    socket.on('booking_cancelled', (data: { bookingId: string }) => {
+      setIncomingRequest(prev =>
+        prev && (prev as any)._id === data.bookingId ? null : prev
+      )
+    })
+
+    return () => { socket.disconnect() }
+  }, [isOnline])
+
 
   // ── Accept ──────────────────────────────────────────────────
   const handleAccept = async () => {
@@ -227,6 +268,7 @@ export default function HomePage() {
             const res = await BookingAPI.complete((activeBooking as any)._id)
             if (res.data?.success) {
               setActiveBooking(null)
+              setBookingStarted(false)
               AssistantAPI.getEarnings().then(r => {
                 if (r.data?.success) setEarnings({ daily: r.data.daily || 0, totalTrips: r.data.totalTrips || 0, rating: r.data.rating || 5.0 })
               }).catch(() => {})
@@ -374,15 +416,29 @@ export default function HomePage() {
               <div style={{ fontSize:'16px', fontWeight:800, color:'#0D9488', marginBottom:'12px' }}>
                 Rs. {(activeBooking as any).fare || 0}
               </div>
+              {/* Status badge */}
+              <div style={{ display:'inline-flex', alignItems:'center', gap:'5px', background: bookingStarted ? '#DCFCE7' : '#FEF3C7', borderRadius:'20px', padding:'3px 10px', marginBottom:'10px' }}>
+                <div style={{ width:'6px', height:'6px', borderRadius:'50%', background: bookingStarted ? '#16A34A' : '#D97706' }} />
+                <span style={{ fontSize:'11px', fontWeight:700, color: bookingStarted ? '#15803D' : '#92400E' }}>
+                  {bookingStarted ? 'In Progress' : 'Accepted — Not Started'}
+                </span>
+              </div>
               <div style={{ display:'flex', gap:'8px' }}>
                 <button onClick={handleEscalate}
                   style={{ flex:1, background:'#FEF3C7', color:'#92400E', border:'none', borderRadius:'10px', padding:'10px', fontSize:'13px', fontWeight:600, cursor:'pointer' }}>
                   Escalate
                 </button>
-                <button onClick={handleComplete}
-                  style={{ flex:2, background:'#0D9488', color:'#fff', border:'none', borderRadius:'10px', padding:'10px', fontSize:'13px', fontWeight:700, cursor:'pointer' }}>
-                  Mark Complete
-                </button>
+                {!bookingStarted ? (
+                  <button onClick={handleStart}
+                    style={{ flex:2, background:'#2563EB', color:'#fff', border:'none', borderRadius:'10px', padding:'10px', fontSize:'13px', fontWeight:700, cursor:'pointer' }}>
+                    Start Trip →
+                  </button>
+                ) : (
+                  <button onClick={handleComplete}
+                    style={{ flex:2, background:'#0D9488', color:'#fff', border:'none', borderRadius:'10px', padding:'10px', fontSize:'13px', fontWeight:700, cursor:'pointer' }}>
+                    Mark Complete
+                  </button>
+                )}
               </div>
             </div>
           )}

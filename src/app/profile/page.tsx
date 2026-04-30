@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { AssistantAPI } from '@/lib/api'
 import { useStore } from '@/lib/store'
 import BottomNav from '@/components/BottomNav'
 import MobileFrame from '@/components/MobileFrame'
@@ -127,8 +128,8 @@ function PersonalView({ onBack }: { onBack:()=>void }) {
     } catch {}
 
     // Then try API
-    fetch('https://carebridge-backend-dns0.onrender.com/api/users/me', { headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('cb_assistant_token') || ''), 'Content-Type': 'application/json' } })
-      .then(r => r.ok ? r.json() : null)
+    AssistantAPI.getProfile()
+      .then(res => res.data)
       .then(data => {
         if (data?.success && data.user) {
           const u: User = data.user
@@ -159,13 +160,9 @@ function PersonalView({ onBack }: { onBack:()=>void }) {
 
     // Try API — if it fails, still show success (localStorage saved)
     try {
-      const res = await fetch('https://carebridge-backend-dns0.onrender.com/api/users/me', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-      if (res.ok) {
-        const data = await res.json()
+      const res = await AssistantAPI.updateProfile(payload)
+      if (res.status === 200) {
+        const data = res.data
         if (!data.success) {
           // API returned error but localStorage is saved
           console.warn('API save failed, localStorage updated')
@@ -262,8 +259,8 @@ export default function ProfilePage() {
       if (cached) setCurrentUser(JSON.parse(cached))
     } catch {}
     // Then API
-    fetch('https://carebridge-backend-dns0.onrender.com/api/users/me', { headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('cb_assistant_token') || ''), 'Content-Type': 'application/json' } })
-      .then(r => r.ok ? r.json() : null)
+    AssistantAPI.getProfile()
+      .then(res => res.data)
       .then(data => { if (data?.success) setCurrentUser(data.user) })
       .catch(() => {})
   }, [])
