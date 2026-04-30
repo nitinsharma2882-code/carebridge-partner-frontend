@@ -234,6 +234,18 @@ export default function HomePage() {
     setIncomingRequest(null)
   }
 
+  // ── Start ───────────────────────────────────────────────────
+  const handleStart = async () => {
+    if (!activeBooking) return
+    try {
+      await BookingAPI.start((activeBooking as any)._id)
+      setBookingStarted(true)
+      showPopup({ type:'info', title:'Trip Started!', icon:'🚗', body:'You are now on your way. Tap Complete when the service is done.', actions:[{ label:'OK', variant:'primary', fn:closePopup }] })
+    } catch {
+      setBookingStarted(true)
+    }
+  }
+
   // ── Escalate ────────────────────────────────────────────────
   const handleEscalate = () => {
     if (!activeBooking) return
