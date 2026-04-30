@@ -308,7 +308,7 @@ export default function EarningsPage() {
               <span style={{ fontSize:'12px', color:'#0D9488', fontWeight:700 }}>{d.chartRange}</span>
             </div>
             <div style={{ display:'flex', alignItems:'flex-end', gap:'6px', height:'100px', marginBottom:'10px' }}>
-              {d.bars.map((b,i) => (
+              {d.bars.map((b: {h:number; l:string; active?:boolean}, i: number) => (
                 <div key={i} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:'4px', height:'100%', justifyContent:'flex-end' }}>
                   <div style={{ width:'100%', borderRadius:'6px 6px 0 0', height:`${b.h}%`, background:b.active?'#0D9488':'#CCFBF1', border:b.active?'2px solid #0F766E':'none', transition:'height 0.5s' }} />
                   <div style={{ fontSize:'10px', fontWeight:b.active?700:600, color:b.active?'#0D9488':'#94A3B8' }}>{b.l}</div>
