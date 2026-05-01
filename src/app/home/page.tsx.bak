@@ -180,24 +180,8 @@ export default function HomePage() {
     })
     socketRef.current = socket
 
-    // ── FIX #2: Emit partner:join so backend adds this partner to the
-    //    correct service room (e.g. service:opd_assistant).
-    //    Without this emit the partner is never in a room and never receives
-    //    new_request events even after fixing the event name below.
-    socket.on('connect', () => {
-      const savedUser = typeof window !== 'undefined'
-        ? JSON.parse(localStorage.getItem('carebridge_user') || '{}')
-        : {}
-      socket.emit('partner:join', {
-        partnerId:   savedUser._id   || '',
-        serviceType: savedUser.serviceType || 'general',
-        isOnline:    true,
-      })
-    })
-
-    // ── FIX #1: Backend emits 'new_request', not 'new_booking'.
-    socket.on('new_request', (data: { booking: Record<string, unknown> }) => {
-      const booking = data.booking || data
+    // New booking available for this partner
+    socket.on('new_booking', (booking: Record<string, unknown>) => {
       setIncomingRequest(prev => {
         // Don't override an existing request the partner hasn't actioned yet
         if (prev) return prev
