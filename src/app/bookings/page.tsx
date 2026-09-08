@@ -5,14 +5,18 @@ import { BookingAPI } from '@/lib/api'
 import { useStore } from '@/lib/store'
 import BottomNav from '@/components/BottomNav'
 import MobileFrame from '@/components/MobileFrame'
+import { getServiceLabel, isEmergencyAmbulance } from '@/lib/serviceLabels'
 
 type BookingStatus = 'pending' | 'accepted' | 'in_progress' | 'completed' | 'cancelled' | 'escalated'
 
 interface Booking {
   _id:                 string
   serviceType:         string
+  serviceId?:          string
+  bookingType?:        string
   hospital?:           string
   pickupLocation?:     string
+  pickupAddress?:      string
   destinationHospital?: string
   patientName?:        string
   patientPhone?:       string
@@ -23,13 +27,6 @@ interface Booking {
   createdAt:           string
   completedAt?:        string
   userId?:             { name?: string; phone?: string }
-}
-
-const SERVICE_LABELS: Record<string,string> = {
-  opd_assistant: 'OPD Assistant',
-  ambulance:     'Ambulance',
-  nursing:       'Nursing Care',
-  general:       'General Help',
 }
 
 const STATUS_CONFIG: Record<string, { label:string; bg:string; color:string }> = {
@@ -98,12 +95,12 @@ export default function BookingsPage() {
   }
 
   const getLocation = (b: Booking) => {
-    if (b.serviceType === 'ambulance') return b.pickupLocation || 'Pickup location'
-    return b.hospital || b.pickupLocation || 'Location not specified'
+    if (isEmergencyAmbulance(b)) return b.pickupLocation || 'Pickup location'
+    return b.hospital || b.pickupAddress || b.pickupLocation || 'Location not specified'
   }
 
   const getCustomer = (b: Booking) => {
-    if (b.serviceType === 'ambulance') return b.patientName || 'Patient'
+    if (isEmergencyAmbulance(b)) return b.patientName || 'Patient'
     return (b.userId as any)?.name || 'Customer'
   }
 
@@ -179,7 +176,7 @@ export default function BookingsPage() {
 
           {!loading && displayed.map(b => {
             const cfg = STATUS_CONFIG[b.status] || STATUS_CONFIG.pending
-            const isAmbulance = b.serviceType === 'ambulance'
+            const isAmbulance = isEmergencyAmbulance(b)
             return (
               <div key={b._id}
                 onClick={() => setSelected(b)}
@@ -189,7 +186,7 @@ export default function BookingsPage() {
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'10px' }}>
                   <div>
                     <div style={{ fontSize:'14px', fontWeight:700, color:'#0F172A' }}>
-                      {SERVICE_LABELS[b.serviceType] || b.serviceType}
+                      {getServiceLabel(b)}
                     </div>
                     <div style={{ fontSize:'12px', color:'#64748B', marginTop:'2px' }}>
                       {getCustomer(b)}
@@ -248,7 +245,7 @@ export default function BookingsPage() {
               <div style={{ width:'40px', height:'4px', borderRadius:'2px', background:'#E2E8F0', margin:'0 auto 20px' }} />
 
               <div style={{ fontSize:'18px', fontWeight:800, color:'#0F172A', marginBottom:'4px' }}>
-                {SERVICE_LABELS[selected.serviceType] || selected.serviceType}
+                {getServiceLabel(selected)}
               </div>
               <div style={{ fontSize:'12px', color:'#64748B', marginBottom:'20px' }}>
                 Booking #{selected._id.slice(-8).toUpperCase()}
@@ -260,7 +257,7 @@ export default function BookingsPage() {
                 { label:'Fare',     value: `Rs. ${selected.fare}` },
                 { label:'Customer', value: getCustomer(selected) },
                 { label:'Location', value: getLocation(selected) },
-                ...(selected.serviceType === 'ambulance' && selected.destinationHospital
+                ...(isEmergencyAmbulance(selected) && selected.destinationHospital
                   ? [{ label:'Destination', value: selected.destinationHospital }]
                   : []),
                 ...(selected.patientPhone

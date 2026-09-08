@@ -5,6 +5,7 @@ import { useStore } from '@/lib/store'
 import { AssistantAPI } from '@/lib/api'
 import MobileFrame from '@/components/MobileFrame'
 import BottomNav from '@/components/BottomNav'
+import { getServiceLabel, getServiceIcon } from '@/lib/serviceLabels'
 
 type Tab = 'daily' | 'weekly' | 'monthly'
 type TxStatus = 'paid' | 'pending' | 'processing'
@@ -22,7 +23,6 @@ const statusStyle: Record<TxStatus,{color:string;bg:string;label:string}> = {
   processing: { color:'#2563EB', bg:'#EFF6FF', label:'⟳ Processing' },
 }
 const fmt = (n:number) => `₹${n.toLocaleString('en-IN')}`
-const serviceIcon: Record<string,string> = { ambulance:'🚑', opd_assistant:'🩺', nursing:'💉', general:'🏥' }
 
 function formatTxDate(iso:string) {
   try {
@@ -208,16 +208,19 @@ export default function EarningsPage() {
           setEarnings(data)
           setAvailable(data.available ?? data.availableBalance ?? 0)
           const rawTx: any[] = data.transactions || data.earnings || []
-          const normalised: Tx[] = rawTx.map((t:any, i:number) => ({
+          const normalised: Tx[] = rawTx.map((t:any, i:number) => {
+            const svc = { serviceType: t.serviceType || t.bookingId?.serviceType, serviceId: t.bookingId?.serviceId, bookingType: t.bookingId?.bookingType }
+            return {
             id:       t._id || t.id || String(i),
-            icon:     serviceIcon[t.serviceType || t.bookingId?.serviceType] || '🏥',
-            type:     t.serviceType === 'ambulance' ? 'Ambulance' : t.serviceType === 'opd_assistant' ? 'OPD Assist' : 'Healthcare',
+            icon:     getServiceIcon(svc),
+            type:     getServiceLabel(svc),
             customer: t.bookingId?.userId?.name || t.customerName || 'Customer',
             date:     formatTxDate(t.createdAt || t.date || ''),
             duration: t.duration || '—',
             amount:   t.amount || 0,
             status:   (t.status === 'completed' ? 'paid' : t.status) as TxStatus,
-          }))
+          }
+          })
           setTransactions(normalised)
         }
       })

@@ -9,6 +9,7 @@ import MobileFrame from '@/components/MobileFrame'
 import { SponsoredSection } from '@/components/SponsoredSection'
 import { ComingSoonSection } from '@/components/ComingSoonSection'
 import { AdDetailScreen } from '@/components/AdDetailScreen'
+import { getServiceLabel, isEmergencyAmbulance } from '@/lib/serviceLabels'
 
 // ── Popup layer ───────────────────────────────────────────────
 function PopupLayer() {
@@ -65,13 +66,6 @@ const TESTIMONIALS = [
 ]
 
 const SCROLL_KEY = 'home_scroll_pos'
-
-const SERVICE_LABELS: Record<string, string> = {
-  opd_assistant: 'OPD Assistant',
-  ambulance:     'Ambulance',
-  nursing:       'Nursing Care',
-  general:       'General Help',
-}
 
 // ── Main page ─────────────────────────────────────────────────
 export default function HomePage() {
@@ -436,7 +430,7 @@ export default function HomePage() {
             <div style={{ margin:'10px 14px 0', borderRadius:'18px', background:'#E0F7F5', border:'2px solid #0D9488', padding:'14px 16px' }}>
               <div style={{ fontSize:'13px', fontWeight:700, color:'#065F46', marginBottom:'4px' }}>Active Booking</div>
               <div style={{ fontSize:'14px', fontWeight:600, color:'#0F172A', marginBottom:'2px' }}>
-                {SERVICE_LABELS[(activeBooking as any).serviceType] || 'Service'}
+                {getServiceLabel(activeBooking as any)}
               </div>
               <div style={{ fontSize:'12px', color:'#475569', marginBottom:'4px' }}>
                 {(activeBooking as any).pickupLocation || (activeBooking as any).hospital || 'Location shared'}
@@ -472,53 +466,56 @@ export default function HomePage() {
           )}
 
           {/* New Request card */}
-          {isOnline && incomingRequest && (
-  <div style={{ margin:'10px 14px 0', borderRadius:'18px', background:'#fff', border:`2px solid ${(incomingRequest as any).serviceType === 'ambulance' ? '#DC2626' : '#0D9488'}`, padding:'14px 16px', animation:'fadeIn 0.4s ease' }}>
+          {isOnline && incomingRequest && (() => {
+            const req = incomingRequest as any
+            const isEmergency = isEmergencyAmbulance(req)
+            return (
+  <div style={{ margin:'10px 14px 0', borderRadius:'18px', background:'#fff', border:`2px solid ${isEmergency ? '#DC2626' : '#0D9488'}`, padding:'14px 16px', animation:'fadeIn 0.4s ease' }}>
 
     {/* Header row */}
     <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'10px' }}>
       <div>
         <div style={{ fontSize:'14px', fontWeight:700, color:'#0F172A' }}>
-          {(incomingRequest as any).serviceType === 'ambulance' ? 'Emergency Request!' : 'New Request!'}
+          {isEmergency ? 'Emergency Request!' : 'New Request!'}
         </div>
         <div style={{ fontSize:'12px', color:'#64748B', marginTop:'2px' }}>
-          {SERVICE_LABELS[(incomingRequest as any).serviceType] || 'Service'}
+          {getServiceLabel(req)}
         </div>
       </div>
-      <div style={{ background:(incomingRequest as any).serviceType === 'ambulance' ? '#FEE2E2' : '#E0F7F5', color:(incomingRequest as any).serviceType === 'ambulance' ? '#DC2626' : '#0D9488', fontSize:'15px', fontWeight:800, borderRadius:'8px', padding:'4px 10px' }}>
-        Rs. {(incomingRequest as any).fare || 0}
+      <div style={{ background:isEmergency ? '#FEE2E2' : '#E0F7F5', color:isEmergency ? '#DC2626' : '#0D9488', fontSize:'15px', fontWeight:800, borderRadius:'8px', padding:'4px 10px' }}>
+        Rs. {req.fare || 0}
       </div>
     </div>
 
     {/* Ambulance specific info */}
-    {(incomingRequest as any).serviceType === 'ambulance' ? (
+    {isEmergency ? (
       <>
         <div style={{ background:'#FEF2F2', borderRadius:'10px', padding:'10px 12px', marginBottom:'10px' }}>
           <div style={{ fontSize:'11px', fontWeight:700, color:'#991B1B', marginBottom:'4px', textTransform:'uppercase', letterSpacing:'0.5px' }}>Pickup</div>
-          <div style={{ fontSize:'13px', color:'#0F172A' }}>{(incomingRequest as any).pickupLocation || 'Location shared on accept'}</div>
+          <div style={{ fontSize:'13px', color:'#0F172A' }}>{req.pickupLocation || 'Location shared on accept'}</div>
         </div>
         <div style={{ background:'#F0FDF4', borderRadius:'10px', padding:'10px 12px', marginBottom:'10px' }}>
           <div style={{ fontSize:'11px', fontWeight:700, color:'#14532D', marginBottom:'4px', textTransform:'uppercase', letterSpacing:'0.5px' }}>Destination</div>
-          <div style={{ fontSize:'13px', color:'#0F172A' }}>{(incomingRequest as any).destinationHospital || 'Hospital details on accept'}</div>
+          <div style={{ fontSize:'13px', color:'#0F172A' }}>{req.destinationHospital || 'Hospital details on accept'}</div>
         </div>
-        {(incomingRequest as any).medicalNotes && (
+        {req.medicalNotes && (
           <div style={{ background:'#FEF3C7', borderRadius:'10px', padding:'10px 12px', marginBottom:'10px' }}>
             <div style={{ fontSize:'11px', fontWeight:700, color:'#92400E', marginBottom:'4px', textTransform:'uppercase', letterSpacing:'0.5px' }}>Medical Notes</div>
-            <div style={{ fontSize:'13px', color:'#0F172A' }}>{(incomingRequest as any).medicalNotes}</div>
+            <div style={{ fontSize:'13px', color:'#0F172A' }}>{req.medicalNotes}</div>
           </div>
         )}
-        {(incomingRequest as any).patientName && (
+        {req.patientName && (
           <div style={{ fontSize:'12px', color:'#64748B', marginBottom:'10px' }}>
-            Patient: {(incomingRequest as any).patientName} · {(incomingRequest as any).patientPhone}
+            Patient: {req.patientName} · {req.patientPhone}
           </div>
         )}
       </>
     ) : (
       /* OPD / Standard info */
       <div style={{ fontSize:'12px', color:'#475569', marginBottom:'10px' }}>
-        {(incomingRequest as any).hospital && <div>Hospital: {(incomingRequest as any).hospital}</div>}
-        {(incomingRequest as any).date && <div>Date: {(incomingRequest as any).date} at {(incomingRequest as any).time}</div>}
-        {!(incomingRequest as any).hospital && <div>Location: {(incomingRequest as any).pickupLocation || 'Shared on accept'}</div>}
+        {req.hospital && <div>Hospital: {req.hospital}</div>}
+        {req.date && <div>Date: {req.date} at {req.time}</div>}
+        {!req.hospital && !req.date && <div>Location: {req.pickupAddress || req.pickupLocation || 'Shared on accept'}</div>}
       </div>
     )}
 
@@ -529,12 +526,13 @@ export default function HomePage() {
         Reject
       </button>
       <button onClick={handleAccept} disabled={accepting}
-        style={{ flex:2, background:(incomingRequest as any).serviceType === 'ambulance' ? '#DC2626' : '#0D9488', color:'#fff', border:'none', borderRadius:'10px', padding:'12px', fontSize:'14px', fontWeight:700, cursor:'pointer', opacity:accepting?0.7:1 }}>
-        {accepting ? 'Accepting...' : (incomingRequest as any).serviceType === 'ambulance' ? 'Accept Emergency' : 'Accept'}
+        style={{ flex:2, background:isEmergency ? '#DC2626' : '#0D9488', color:'#fff', border:'none', borderRadius:'10px', padding:'12px', fontSize:'14px', fontWeight:700, cursor:'pointer', opacity:accepting?0.7:1 }}>
+        {accepting ? 'Accepting...' : isEmergency ? 'Accept Emergency' : 'Accept'}
       </button>
     </div>
   </div>
-)}
+            )
+          })()}
 
           {/* Nearby map */}
           <div style={{ margin:'12px 14px', borderRadius:'18px', overflow:'hidden', background:'#fff', border:'1px solid #E2E8F0' }}>
