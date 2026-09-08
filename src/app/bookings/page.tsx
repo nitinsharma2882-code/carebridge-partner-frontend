@@ -22,6 +22,7 @@ interface Booking {
   patientPhone?:       string
   date?:               string
   time?:               string
+  notes?:              string
   fare:                number
   status:              BookingStatus
   createdAt:           string
@@ -266,6 +267,9 @@ export default function BookingsPage() {
                 ...(selected.date
                   ? [{ label:'Date & Time', value: `${selected.date} ${selected.time ? 'at ' + selected.time : ''}` }]
                   : [{ label:'Booked on', value: formatDate(selected.createdAt) }]),
+                ...(selected.notes
+                  ? [{ label:'Notes', value: selected.notes }]
+                  : []),
                 ...(selected.completedAt
                   ? [{ label:'Completed on', value: formatDate(selected.completedAt) }]
                   : []),

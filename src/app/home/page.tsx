@@ -435,6 +435,11 @@ export default function HomePage() {
               <div style={{ fontSize:'12px', color:'#475569', marginBottom:'4px' }}>
                 {(activeBooking as any).pickupLocation || (activeBooking as any).hospital || 'Location shared'}
               </div>
+              {(activeBooking as any).notes && (
+                <div style={{ fontSize:'12px', color:'#475569', marginBottom:'4px', wordBreak:'break-word' }}>
+                  Notes: {(activeBooking as any).notes}
+                </div>
+              )}
               <div style={{ fontSize:'16px', fontWeight:800, color:'#0D9488', marginBottom:'12px' }}>
                 Rs. {(activeBooking as any).fare || 0}
               </div>
@@ -516,6 +521,12 @@ export default function HomePage() {
         {req.hospital && <div>Hospital: {req.hospital}</div>}
         {req.date && <div>Date: {req.date} at {req.time}</div>}
         {!req.hospital && !req.date && <div>Location: {req.pickupAddress || req.pickupLocation || 'Shared on accept'}</div>}
+        {req.notes && (
+          <div style={{ background:'#F1F5F9', borderRadius:'10px', padding:'10px 12px', marginTop:'8px' }}>
+            <div style={{ fontSize:'11px', fontWeight:700, color:'#475569', marginBottom:'4px', textTransform:'uppercase', letterSpacing:'0.5px' }}>Notes</div>
+            <div style={{ fontSize:'13px', color:'#0F172A', wordBreak:'break-word' }}>{req.notes}</div>
+          </div>
+        )}
       </div>
     )}
 
