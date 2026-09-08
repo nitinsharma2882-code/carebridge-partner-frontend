@@ -440,6 +440,11 @@ export default function HomePage() {
                   Notes: {(activeBooking as any).notes}
                 </div>
               )}
+              {(activeBooking as any).selectedAddOns?.length > 0 && (
+                <div style={{ fontSize:'12px', color:'#475569', marginBottom:'4px', wordBreak:'break-word' }}>
+                  Add-ons: {(activeBooking as any).selectedAddOns.map((a: any) => `${a.label} (+₹${a.price}${a.billing === 'perHour' ? '/hr' : ''})`).join(', ')}
+                </div>
+              )}
               <div style={{ fontSize:'16px', fontWeight:800, color:'#0D9488', marginBottom:'12px' }}>
                 Rs. {(activeBooking as any).fare || 0}
               </div>
@@ -525,6 +530,17 @@ export default function HomePage() {
           <div style={{ background:'#F1F5F9', borderRadius:'10px', padding:'10px 12px', marginTop:'8px' }}>
             <div style={{ fontSize:'11px', fontWeight:700, color:'#475569', marginBottom:'4px', textTransform:'uppercase', letterSpacing:'0.5px' }}>Notes</div>
             <div style={{ fontSize:'13px', color:'#0F172A', wordBreak:'break-word' }}>{req.notes}</div>
+          </div>
+        )}
+        {req.selectedAddOns && req.selectedAddOns.length > 0 && (
+          <div style={{ background:'#F1F5F9', borderRadius:'10px', padding:'10px 12px', marginTop:'8px' }}>
+            <div style={{ fontSize:'11px', fontWeight:700, color:'#475569', marginBottom:'4px', textTransform:'uppercase', letterSpacing:'0.5px' }}>Add-ons</div>
+            {req.selectedAddOns.map((a: any, i: number) => (
+              <div key={i} style={{ display:'flex', justifyContent:'space-between', fontSize:'13px', color:'#0F172A', marginTop: i > 0 ? 4 : 0 }}>
+                <span>{a.label}</span>
+                <span style={{ fontWeight:700, color:'#0D9488' }}>+₹{a.price}{a.billing === 'perHour' ? '/hr' : ''}</span>
+              </div>
+            ))}
           </div>
         )}
       </div>

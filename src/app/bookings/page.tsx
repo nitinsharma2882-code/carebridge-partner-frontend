@@ -23,6 +23,7 @@ interface Booking {
   date?:               string
   time?:               string
   notes?:              string
+  selectedAddOns?:     { id: string; label: string; price: number; billing: 'flat' | 'perHour' }[]
   fare:                number
   status:              BookingStatus
   createdAt:           string
@@ -279,6 +280,20 @@ export default function BookingsPage() {
                   <span style={{ fontSize:'13px', fontWeight:600, color:'#0F172A', textAlign:'right', maxWidth:'60%' }}>{row.value}</span>
                 </div>
               ))}
+
+              {/* Add-ons — itemized, not a single joined string like the flat rows
+                  above, since this list is meant to grow beyond one item */}
+              {selected.selectedAddOns && selected.selectedAddOns.length > 0 && (
+                <div style={{ paddingTop:'12px', paddingBottom:'12px', borderBottom:'1px solid #F1F5F9' }}>
+                  <div style={{ fontSize:'13px', color:'#64748B', marginBottom:'8px' }}>Add-ons</div>
+                  {selected.selectedAddOns.map((a, i) => (
+                    <div key={a.id} style={{ display:'flex', justifyContent:'space-between', marginTop: i > 0 ? 6 : 0 }}>
+                      <span style={{ fontSize:'13px', color:'#0F172A' }}>{a.label}</span>
+                      <span style={{ fontSize:'13px', fontWeight:700, color:'#0D9488' }}>+₹{a.price}{a.billing === 'perHour' ? '/hr' : ''}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               <button onClick={() => setSelected(null)}
                 style={{ width:'100%', padding:'14px', background:'#0D9488', color:'#fff', border:'none', borderRadius:'14px', fontSize:'14px', fontWeight:700, cursor:'pointer', fontFamily:'DM Sans, sans-serif', marginTop:'20px' }}>
