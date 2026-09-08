@@ -45,6 +45,7 @@ const SERVICE_TYPES = [
     color: '#0D9488',
     bg:    '#E0F7F5',
     border:'#0D9488',
+    disabled: false,
   },
   {
     id:    'ambulance',
@@ -54,6 +55,7 @@ const SERVICE_TYPES = [
     color: '#DC2626',
     bg:    '#FEE2E2',
     border:'#DC2626',
+    disabled: true,
   },
 ]
 
@@ -134,29 +136,39 @@ export default function LoginPage() {
                 {/* Service type cards */}
                 {SERVICE_TYPES.map(s => (
                   <div key={s.id}
-                    onClick={() => handleSelectService(s.id)}
+                    onClick={() => { if (!s.disabled) handleSelectService(s.id) }}
                     style={{
-                      border: `2px solid ${s.border}`,
+                      border: `2px solid ${s.disabled ? '#E2E8F0' : s.border}`,
                       borderRadius:'18px',
                       padding:'18px 16px',
                       marginBottom:'12px',
-                      cursor:'pointer',
+                      cursor: s.disabled ? 'not-allowed' : 'pointer',
                       display:'flex',
                       alignItems:'center',
                       gap:'16px',
-                      background:'#fff',
+                      background: s.disabled ? '#F8FAFC' : '#fff',
+                      opacity: s.disabled ? 0.65 : 1,
                       transition:'all 0.15s',
                     }}>
-                    <div style={{ width:'48px', height:'48px', borderRadius:'14px', background:s.bg, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                      <span style={{ fontSize:'20px', fontWeight:800, color:s.color }}>{s.icon}</span>
+                    <div style={{ width:'48px', height:'48px', borderRadius:'14px', background: s.disabled ? '#F1F5F9' : s.bg, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                      <span style={{ fontSize:'20px', fontWeight:800, color: s.disabled ? '#94A3B8' : s.color }}>{s.icon}</span>
                     </div>
                     <div style={{ flex:1 }}>
-                      <div style={{ fontSize:'16px', fontWeight:800, color:'#0F172A', marginBottom:'3px' }}>{s.label}</div>
-                      <div style={{ fontSize:'12px', color:'#64748B', lineHeight:1.4 }}>{s.desc}</div>
+                      <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'3px' }}>
+                        <div style={{ fontSize:'16px', fontWeight:800, color: s.disabled ? '#94A3B8' : '#0F172A' }}>{s.label}</div>
+                        {s.disabled && (
+                          <span style={{ fontSize:'10px', fontWeight:700, color:'#94A3B8', background:'#F1F5F9', borderRadius:'20px', padding:'2px 9px', textTransform:'uppercase', letterSpacing:'0.4px' }}>
+                            Coming Soon
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize:'12px', color:'#94A3B8', lineHeight:1.4 }}>{s.desc}</div>
                     </div>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={s.color} strokeWidth="2.5" strokeLinecap="round">
-                      <polyline points="9 18 15 12 9 6"/>
-                    </svg>
+                    {!s.disabled && (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={s.color} strokeWidth="2.5" strokeLinecap="round">
+                        <polyline points="9 18 15 12 9 6"/>
+                      </svg>
+                    )}
                   </div>
                 ))}
 
