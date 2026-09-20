@@ -35,7 +35,7 @@ function bookingTypeSuffix(b: ServiceDisplayBooking): string {
 
 export function getServiceLabel(b: ServiceDisplayBooking): string {
   const serviceId = b.serviceId || ''
-  if (serviceId.startsWith('hospital_')) return `Meet at the Hospital${bookingTypeSuffix(b)}`
+  if (serviceId.startsWith('hospital_')) return `Meet at the Location${bookingTypeSuffix(b)}`
   if (serviceId.startsWith('pickdrop_')) return `Pick & Drop Assistance${bookingTypeSuffix(b)}`
   if (serviceId === 'medicine_collection') return 'Medicine Collection'
   return LEGACY_LABELS[b.serviceType || ''] || 'Service'
