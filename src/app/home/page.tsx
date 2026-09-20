@@ -81,11 +81,16 @@ export default function HomePage() {
   const [activeBooking,   setActiveBooking]   = useState<Record<string,unknown>|null>(null)
   const [accepting,       setAccepting]       = useState(false)
   const [bookingStarted,  setBookingStarted]  = useState(false)
+  const [otpModalOpen,    setOtpModalOpen]    = useState(false)
+  const [otpDigits,       setOtpDigits]       = useState(['', '', '', ''])
+  const [otpError,        setOtpError]        = useState('')
+  const [startingTrip,    setStartingTrip]    = useState(false)
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const pollRef   = useRef<ReturnType<typeof setInterval>|null>(null)
   const timerRef  = useRef<ReturnType<typeof setTimeout>|null>(null)
   const socketRef = useRef<Socket|null>(null)
+  const otpRefs   = useRef<(HTMLInputElement|null)[]>([])
 
   // Restore scroll position
   useEffect(() => {
@@ -244,16 +249,50 @@ export default function HomePage() {
     setIncomingRequest(null)
   }
 
-  // ── Start ───────────────────────────────────────────────────
-  const handleStart = async () => {
+  // ── Start (verification-gated) ─────────────────────────────────
+  // Requires the code the consumer reads aloud on arrival — verified
+  // server-side. A failed attempt (wrong code, expired session, etc.)
+  // must surface as a real error, never silently flip bookingStarted —
+  // that was a pre-existing bug (catch swallowed every failure into a
+  // fake success) that would otherwise defeat this whole check.
+  const handleStart = async (otp: string) => {
     if (!activeBooking) return
+    setStartingTrip(true)
     try {
-      await BookingAPI.start((activeBooking as any)._id)
+      await BookingAPI.start((activeBooking as any)._id, otp)
       setBookingStarted(true)
+      setOtpModalOpen(false)
+      setOtpDigits(['', '', '', ''])
       showPopup({ type:'info', title:'Trip Started!', icon:'🚗', body:'You are now on your way. Tap Complete when the service is done.', actions:[{ label:'OK', variant:'primary', fn:closePopup }] })
-    } catch {
-      setBookingStarted(true)
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || 'Could not verify the code. Please try again.'
+      setOtpError(msg)
+      setOtpDigits(['', '', '', ''])
+      otpRefs.current[0]?.focus()
+    } finally {
+      setStartingTrip(false)
     }
+  }
+
+  // ── OTP modal digit entry — same box behavior as the login /otp
+  //    screen (auto-advance, auto-submit on last digit), reused here
+  //    rather than reinvented.
+  const handleOtpChange = (i: number, val: string) => {
+    if (!/^\d?$/.test(val)) return
+    setOtpError('')
+    const d = [...otpDigits]; d[i] = val; setOtpDigits(d)
+    if (val && i < 3) otpRefs.current[i + 1]?.focus()
+    if (d.every(x => x) && d.join('').length === 4) handleStart(d.join(''))
+  }
+
+  const handleOtpBackspace = (i: number, key: string) => {
+    if (key === 'Backspace' && !otpDigits[i] && i > 0) otpRefs.current[i - 1]?.focus()
+  }
+
+  const closeOtpModal = () => {
+    setOtpModalOpen(false)
+    setOtpDigits(['', '', '', ''])
+    setOtpError('')
   }
 
   // ── Escalate ────────────────────────────────────────────────
@@ -461,9 +500,9 @@ export default function HomePage() {
                   Escalate
                 </button>
                 {!bookingStarted ? (
-                  <button onClick={handleStart}
+                  <button onClick={() => setOtpModalOpen(true)}
                     style={{ flex:2, background:'#2563EB', color:'#fff', border:'none', borderRadius:'10px', padding:'10px', fontSize:'13px', fontWeight:700, cursor:'pointer' }}>
-                    Start Trip →
+                    Enter Code to Start →
                   </button>
                 ) : (
                   <button onClick={handleComplete}
@@ -640,6 +679,43 @@ export default function HomePage() {
       {adScreen && (
         <div style={{ position:'absolute', inset:0, zIndex:200 }}>
           <AdDetailScreen ad={adData} onBack={() => setAdScreen(false)} onConfirm={handleAdConfirm} />
+        </div>
+      )}
+
+      {/* Enter Code to Start — modal, reusing PopupLayer's overlay/backdrop
+          convention and the login /otp page's digit-box styling */}
+      {otpModalOpen && (
+        <div onClick={e => { if (e.target === e.currentTarget) closeOtpModal() }}
+          style={{ position:'absolute', inset:0, zIndex:150, background:'rgba(15,23,42,0.65)', display:'flex', alignItems:'center', justifyContent:'center', padding:'20px' }}>
+          <div style={{ background:'#fff', borderRadius:'22px', width:'100%', padding:'28px 22px 22px' }}>
+            <h2 style={{ fontSize:'18px', fontWeight:800, color:'#0F172A', textAlign:'center', margin:'0 0 6px' }}>Enter Verification Code</h2>
+            <p style={{ fontSize:'13px', color:'#64748B', textAlign:'center', margin:'0 0 20px', lineHeight:1.5 }}>
+              Ask the customer for their 4-digit code before starting the job
+            </p>
+
+            <div style={{ display:'flex', gap:'10px', justifyContent:'center', marginBottom:'12px' }}>
+              {otpDigits.map((d, i) => (
+                <input key={i} ref={el => { otpRefs.current[i] = el }} value={d} maxLength={1} inputMode="numeric"
+                  disabled={startingTrip}
+                  onChange={e => handleOtpChange(i, e.target.value)}
+                  onKeyDown={e => handleOtpBackspace(i, e.key)}
+                  style={{ width:'52px', height:'62px', borderRadius:'12px', textAlign:'center', fontSize:'26px', fontWeight:800, fontFamily:'monospace', border:`2px solid ${otpError ? '#DC2626' : d ? '#0D9488' : '#E2E8F0'}`, background: otpError ? '#FEF2F2' : d ? '#EDFAF7' : '#F8FAFC', color: d ? '#0D9488' : '#0F172A', outline:'none' }}
+                />
+              ))}
+            </div>
+
+            {otpError && (
+              <p style={{ fontSize:'13px', color:'#DC2626', textAlign:'center', margin:'0 0 12px', fontWeight:600 }}>{otpError}</p>
+            )}
+            {startingTrip && (
+              <p style={{ fontSize:'13px', color:'#64748B', textAlign:'center', margin:'0 0 12px' }}>Verifying…</p>
+            )}
+
+            <button onClick={closeOtpModal}
+              style={{ width:'100%', padding:'13px', background:'#F1F5F9', color:'#475569', border:'none', borderRadius:'14px', fontSize:'14px', fontWeight:700, cursor:'pointer', marginTop:'6px' }}>
+              Cancel
+            </button>
+          </div>
         </div>
       )}
 

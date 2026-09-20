@@ -62,8 +62,8 @@ export const BookingAPI = {
   reject: (id: string) =>
     api.post(`/api/bookings/${id}/reject`),
 
-  start: (id: string) =>
-    api.post(`/api/bookings/${id}/start`),
+  start: (id: string, otp: string) =>
+    api.post(`/api/bookings/${id}/start`, { otp }),
 
   complete: (id: string) =>
     api.post(`/api/bookings/${id}/complete`),
