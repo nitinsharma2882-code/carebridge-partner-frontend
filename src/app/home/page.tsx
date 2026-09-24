@@ -9,7 +9,7 @@ import MobileFrame from '@/components/MobileFrame'
 import { SponsoredSection } from '@/components/SponsoredSection'
 import { ComingSoonSection } from '@/components/ComingSoonSection'
 import { AdDetailScreen } from '@/components/AdDetailScreen'
-import { getServiceLabel, isEmergencyAmbulance } from '@/lib/serviceLabels'
+import { getServiceLabel, isEmergencyAmbulance, getConsumerPhone, getAccessibilitySummary } from '@/lib/serviceLabels'
 
 // ── Popup layer ───────────────────────────────────────────────
 function PopupLayer() {
@@ -471,9 +471,22 @@ export default function HomePage() {
               <div style={{ fontSize:'14px', fontWeight:600, color:'#0F172A', marginBottom:'2px' }}>
                 {getServiceLabel(activeBooking as any)}
               </div>
+              {(activeBooking as any).userId?.name && (
+                <div style={{ fontSize:'12px', color:'#475569', marginBottom:'4px' }}>
+                  {(activeBooking as any).userId.name}
+                  {(activeBooking as any).userId.age ? `, ${(activeBooking as any).userId.age}` : ''}
+                  {(activeBooking as any).userId.gender ? ` · ${(activeBooking as any).userId.gender}` : ''}
+                </div>
+              )}
               <div style={{ fontSize:'12px', color:'#475569', marginBottom:'4px' }}>
                 {(activeBooking as any).pickupLocation || (activeBooking as any).hospital || 'Location shared'}
               </div>
+              {getAccessibilitySummary((activeBooking as any).userAccessibility) && (
+                <div style={{ background:'#F1F5F9', borderRadius:'10px', padding:'10px 12px', marginBottom:'4px' }}>
+                  <div style={{ fontSize:'11px', fontWeight:700, color:'#475569', marginBottom:'4px', textTransform:'uppercase', letterSpacing:'0.5px' }}>Accessibility Needs</div>
+                  <div style={{ fontSize:'13px', color:'#0F172A' }}>{getAccessibilitySummary((activeBooking as any).userAccessibility)}</div>
+                </div>
+              )}
               {(activeBooking as any).notes && (
                 <div style={{ fontSize:'12px', color:'#475569', marginBottom:'4px', wordBreak:'break-word' }}>
                   Notes: {(activeBooking as any).notes}
@@ -495,6 +508,12 @@ export default function HomePage() {
                 </span>
               </div>
               <div style={{ display:'flex', gap:'8px' }}>
+                {getConsumerPhone(activeBooking as any) && (
+                  <a href={`tel:${getConsumerPhone(activeBooking as any)}`}
+                    style={{ flex:1, background:'#EDFAF7', color:'#0D9488', border:'none', borderRadius:'10px', padding:'10px', fontSize:'13px', fontWeight:600, cursor:'pointer', textDecoration:'none', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                    Call
+                  </a>
+                )}
                 <button onClick={handleEscalate}
                   style={{ flex:1, background:'#FEF3C7', color:'#92400E', border:'none', borderRadius:'10px', padding:'10px', fontSize:'13px', fontWeight:600, cursor:'pointer' }}>
                   Escalate
@@ -535,6 +554,21 @@ export default function HomePage() {
         Rs. {req.fare || 0}
       </div>
     </div>
+
+    {/* Consumer identity */}
+    {req.userId?.name && (
+      <div style={{ fontSize:'12px', color:'#64748B', marginBottom:'10px' }}>
+        {req.userId.name}{req.userId.age ? `, ${req.userId.age}` : ''}{req.userId.gender ? ` · ${req.userId.gender}` : ''}
+      </div>
+    )}
+
+    {/* Accessibility needs */}
+    {getAccessibilitySummary(req.userAccessibility) && (
+      <div style={{ background:'#F1F5F9', borderRadius:'10px', padding:'10px 12px', marginBottom:'10px' }}>
+        <div style={{ fontSize:'11px', fontWeight:700, color:'#475569', marginBottom:'4px', textTransform:'uppercase', letterSpacing:'0.5px' }}>Accessibility Needs</div>
+        <div style={{ fontSize:'13px', color:'#0F172A' }}>{getAccessibilitySummary(req.userAccessibility)}</div>
+      </div>
+    )}
 
     {/* Ambulance specific info */}
     {isEmergency ? (

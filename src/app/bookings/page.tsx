@@ -5,7 +5,7 @@ import { BookingAPI } from '@/lib/api'
 import { useStore } from '@/lib/store'
 import BottomNav from '@/components/BottomNav'
 import MobileFrame from '@/components/MobileFrame'
-import { getServiceLabel, isEmergencyAmbulance } from '@/lib/serviceLabels'
+import { getServiceLabel, isEmergencyAmbulance, getConsumerPhone, getAccessibilitySummary, AccessibilityInfo } from '@/lib/serviceLabels'
 
 type BookingStatus = 'pending' | 'accepted' | 'in_progress' | 'completed' | 'cancelled' | 'escalated'
 
@@ -28,7 +28,8 @@ interface Booking {
   status:              BookingStatus
   createdAt:           string
   completedAt?:        string
-  userId?:             { name?: string; phone?: string }
+  userId?:             { name?: string; phone?: string; age?: string; gender?: string }
+  userAccessibility?:  AccessibilityInfo
 }
 
 const STATUS_CONFIG: Record<string, { label:string; bg:string; color:string }> = {
@@ -258,12 +259,18 @@ export default function BookingsPage() {
                 { label:'Status',   value: STATUS_CONFIG[selected.status]?.label || selected.status },
                 { label:'Fare',     value: `Rs. ${selected.fare}` },
                 { label:'Customer', value: getCustomer(selected) },
+                ...(selected.userId?.age || selected.userId?.gender
+                  ? [{ label:'Age / Gender', value: [selected.userId?.age, selected.userId?.gender].filter(Boolean).join(' · ') }]
+                  : []),
                 { label:'Location', value: getLocation(selected) },
                 ...(isEmergencyAmbulance(selected) && selected.destinationHospital
                   ? [{ label:'Destination', value: selected.destinationHospital }]
                   : []),
-                ...(selected.patientPhone
-                  ? [{ label:'Patient Phone', value: selected.patientPhone }]
+                ...(getConsumerPhone(selected)
+                  ? [{ label:'Phone', value: getConsumerPhone(selected), isPhone: true }]
+                  : []),
+                ...(getAccessibilitySummary(selected.userAccessibility)
+                  ? [{ label:'Accessibility Needs', value: getAccessibilitySummary(selected.userAccessibility)! }]
                   : []),
                 ...(selected.date
                   ? [{ label:'Date & Time', value: `${selected.date} ${selected.time ? 'at ' + selected.time : ''}` }]
@@ -274,10 +281,14 @@ export default function BookingsPage() {
                 ...(selected.completedAt
                   ? [{ label:'Completed on', value: formatDate(selected.completedAt) }]
                   : []),
-              ].map((row, i) => (
+              ].map((row: { label: string; value: string; isPhone?: boolean }, i) => (
                 <div key={i} style={{ display:'flex', justifyContent:'space-between', paddingTop:'12px', paddingBottom:'12px', borderBottom:'1px solid #F1F5F9' }}>
                   <span style={{ fontSize:'13px', color:'#64748B' }}>{row.label}</span>
-                  <span style={{ fontSize:'13px', fontWeight:600, color:'#0F172A', textAlign:'right', maxWidth:'60%' }}>{row.value}</span>
+                  {row.isPhone ? (
+                    <a href={`tel:${row.value}`} style={{ fontSize:'13px', fontWeight:600, color:'#0D9488', textAlign:'right', textDecoration:'none' }}>{row.value}</a>
+                  ) : (
+                    <span style={{ fontSize:'13px', fontWeight:600, color:'#0F172A', textAlign:'right', maxWidth:'60%' }}>{row.value}</span>
+                  )}
                 </div>
               ))}
 

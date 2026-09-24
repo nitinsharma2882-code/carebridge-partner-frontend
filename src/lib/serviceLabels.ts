@@ -58,3 +58,45 @@ export function getServiceIcon(b: ServiceDisplayBooking): string {
 export function isEmergencyAmbulance(b: ServiceDisplayBooking): boolean {
   return b.serviceType === 'ambulance' && !(b.serviceId || '').startsWith('pickdrop_')
 }
+
+// ── Consumer contact / accessibility ────────────────────────────
+// Populated on all 3 partner-facing booking read paths (GET
+// /api/assistants/requests, GET /api/bookings, POST /:id/accept) as of
+// the Phase A backend work.
+
+export interface ConsumerContactBooking {
+  patientPhone?: string
+  userId?: { name?: string; phone?: string; age?: string; gender?: string }
+}
+
+// Ambulance/Pick&Drop bookings carry patientPhone as a first-class field
+// (backend defaults it to the consumer's own phone when not explicitly
+// set). Standard OPD bookings never populate patientPhone, so fall back
+// to the populated consumer record — one path, not per-service branching.
+export function getConsumerPhone(b: ConsumerContactBooking): string {
+  return b.patientPhone || b.userId?.phone || ''
+}
+
+export interface AccessibilityInfo {
+  hearing?:  string
+  vision?:   string
+  mobility?: string
+}
+
+const ACCESSIBILITY_LABELS: Record<string, Record<string, string>> = {
+  vision:   { blind: 'Blind',                impaired: 'Low vision' },
+  hearing:  { deaf: 'Deaf',                  hard_of_hearing: 'Hard of hearing' },
+  mobility: { wheelchair: 'Wheelchair user', difficulty: 'Limited mobility' },
+}
+
+// null when the consumer never set any accessibility need — callers
+// must not render a section at all in that case (never a placeholder).
+export function getAccessibilitySummary(a?: AccessibilityInfo | null): string | null {
+  if (!a) return null
+  const parts = [
+    a.vision   && a.vision   !== 'none' ? (ACCESSIBILITY_LABELS.vision[a.vision]     || a.vision)   : null,
+    a.hearing  && a.hearing  !== 'none' ? (ACCESSIBILITY_LABELS.hearing[a.hearing]   || a.hearing)  : null,
+    a.mobility && a.mobility !== 'none' ? (ACCESSIBILITY_LABELS.mobility[a.mobility] || a.mobility) : null,
+  ].filter(Boolean) as string[]
+  return parts.length > 0 ? parts.join(' · ') : null
+}
